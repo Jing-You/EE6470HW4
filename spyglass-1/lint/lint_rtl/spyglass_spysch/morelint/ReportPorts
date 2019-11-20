@@ -1,9 +1,0 @@
-SCHEMA@@PName@@Dir@@Msb@@Lsb@@Desc@@DU@@DU_BBOX
-VALUE@@clk@@INPUT@@0@@0@@clock input@@qr_decode@@No
-VALUE@@srstn@@INPUT@@0@@0@@synchronous reset (active low)@@qr_decode@@No
-VALUE@@qr_decode_start@@INPUT@@0@@0@@start decoding for one QR code@@qr_decode@@No
-VALUE@@sram_rdata@@INPUT@@0@@0@@read data from SRAM@@qr_decode@@No
-VALUE@@sram_raddr@@OUTPUT@@11@@0@@read address to SRAM@@qr_decode@@No
-VALUE@@decode_valid@@OUTPUT@@0@@0@@decoded code is valid@@qr_decode@@No
-VALUE@@decode_jis8_code@@OUTPUT@@7@@0@@decoded JIS8 code@@qr_decode@@No
-VALUE@@qr_decode_finish@@OUTPUT@@0@@0@@1: decoding one QR code is finis...@@qr_decode@@No
