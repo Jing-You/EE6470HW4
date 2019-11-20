@@ -5,7 +5,7 @@ module a2i(
 );
 
 always @* begin
-	case(a):  // synopsys parallel_case
+	case(a) // synopsys parallel_case
 		0:i=1;
 		1:i=2;
 		2:i=4;

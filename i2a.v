@@ -5,7 +5,7 @@ module i2a(
 );
 
 always @* begin
-	case(i):  // synopsys parallel_case
+	case(i) // synopsys parallel_case
 		0:a=0;
 		1:a=1;
 		2:a=1;
