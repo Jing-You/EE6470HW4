@@ -5,7 +5,7 @@ module a2i(
 	output reg [7:0] i
 );
 
-always @* begin
+always @(posedge clk) begin
 	case(a) // synopsys parallel_case
 		0:i<=1;
 		1:i<=2;

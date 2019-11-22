@@ -5,7 +5,7 @@ module i2a(
 	output reg [7:0] a
 );
 
-always @* begin
+always @(posedge clk) begin
 	case(i) // synopsys parallel_case
 		0:a<=0;
 		1:a<=0;
