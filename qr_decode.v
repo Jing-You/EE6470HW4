@@ -34,7 +34,6 @@ reg [4:0] output_cnt;
 reg [7:0] text_length;
 reg searched_position;
 
-
 assign corner[0][0] = 1;
 assign corner[0][1] = 1;
 assign corner[0][2] = 1;
@@ -44,11 +43,11 @@ assign corner[1][2] = 0;
 assign corner[2][0] = 1;
 assign corner[2][1] = 0;
 assign corner[2][2] = 1;
+
 reg findfirstai0, findfirstai1, findfirstai0_t, findfirstai1_t;
 reg [3:0] state;
 reg [20:0] start_point_x;
 reg [20:0] start_point_y;
-reg img[IMG_LEN-1:0][IMG_LEN-1:0];
 wire [3:0] x_corner1 = 14;
 wire [3:0] y_corner2 = 14;
 reg read_finished;
@@ -64,26 +63,22 @@ reg [8:0]S2, S2_t;
 reg [8:0]S3;
 reg [8:0]S4;
 reg [8:0]S5;
+
 wire error_occur = S0 != 0 || S1 != 0 || S2 != 0 || S3 != 0;
 
 reg [7:0] codeword [25:0];
-reg [8:0] alpha_array[25:0];
+reg [7:0] alpha_array[25:0];
 reg [8:0] Y1, Y2, Y1_a, Y2_a;
 reg [2:0] search_state;
 reg [9:0] search_cnt;
 
-wire [7:0] a2i0_i, a2i1_i, a2i2_i, a2i3_i;
+wire [7:0] a2i0_i, a2i1_i;
 wire [7:0] i2a0_a, i2a1_a;
-reg [7:0] a2i0_a, a2i1_a, a2i2_a, a2i3_a;
+reg [7:0] a2i0_a, a2i1_a;
 reg [7:0] i2a0_i, i2a1_i;
 
-reg [7:0] img_x_buf;
-reg [7:0] img_y_buf;
-
-always @(posedge clk) begin
-	if (state == WRITE || state == SEARCH_FINISH)
-		img[img_y][img_x] <= sram_rdata;
-end
+reg [6:0] img_x_buf;
+reg [6:0] img_y_buf;
 
 a2i a2i0(
 	.clk(clk),
@@ -107,11 +102,6 @@ i2a i2a0(
 always @(posedge clk) begin
 	if (!srstn) begin
 		state <= IDLE;
-		for(i=0; i<IMG_LEN; i=i+1) begin
-			for(j=0; j<IMG_LEN; j=j+1) begin
-				img[i][j] <= 0;
-			end
-		end
 	end
 	else if (qr_decode_start == 1'b1) begin
 		state <= SEARCH;
@@ -425,6 +415,16 @@ always @(posedge clk) begin
 	end
 end
 
+reg sram_rdata_buf;
+always @(posedge clk) begin
+	sram_rdata_buf <= sram_rdata;
+end 
+always @(posedge clk) begin
+	img_y_buf <= img_y;
+	img_x_buf <= img_x;
+end
+
+
 wire [2:0] mask_pattern = {qr_img[8][2], qr_img[8][3], qr_img[8][4]} ^ 3'b101;
 always @(posedge clk) begin
 	if (!srstn) begin
@@ -435,15 +435,545 @@ always @(posedge clk) begin
 		end				
 	end
 	else if(state == READ) begin
-		qr_img[img_y - confirm_top_most_y][img_x - confirm_left_most_x] <= sram_rdata;
+		// qr_img[img_y_buf - confirm_top_most_y][img_x_buf - confirm_left_most_x] <= sram_rdata_buf;
+	
+	case(img_y_buf - confirm_top_most_y) // synopsys full_case parallel_case
+		5'd0: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[0][0]<=sram_rdata_buf;
+			5'd1: qr_img[0][1]<=sram_rdata_buf;
+			5'd2: qr_img[0][2]<=sram_rdata_buf;
+			5'd3: qr_img[0][3]<=sram_rdata_buf;
+			5'd4: qr_img[0][4]<=sram_rdata_buf;
+			5'd5: qr_img[0][5]<=sram_rdata_buf;
+			5'd6: qr_img[0][6]<=sram_rdata_buf;
+			5'd7: qr_img[0][7]<=sram_rdata_buf;
+			5'd8: qr_img[0][8]<=sram_rdata_buf;
+			5'd9: qr_img[0][9]<=sram_rdata_buf;
+			5'd10: qr_img[0][10]<=sram_rdata_buf;
+			5'd11: qr_img[0][11]<=sram_rdata_buf;
+			5'd12: qr_img[0][12]<=sram_rdata_buf;
+			5'd13: qr_img[0][13]<=sram_rdata_buf;
+			5'd14: qr_img[0][14]<=sram_rdata_buf;
+			5'd15: qr_img[0][15]<=sram_rdata_buf;
+			5'd16: qr_img[0][16]<=sram_rdata_buf;
+			5'd17: qr_img[0][17]<=sram_rdata_buf;
+			5'd18: qr_img[0][18]<=sram_rdata_buf;
+			5'd19: qr_img[0][19]<=sram_rdata_buf;
+			5'd20: qr_img[0][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd1: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[1][0]<=sram_rdata_buf;
+			5'd1: qr_img[1][1]<=sram_rdata_buf;
+			5'd2: qr_img[1][2]<=sram_rdata_buf;
+			5'd3: qr_img[1][3]<=sram_rdata_buf;
+			5'd4: qr_img[1][4]<=sram_rdata_buf;
+			5'd5: qr_img[1][5]<=sram_rdata_buf;
+			5'd6: qr_img[1][6]<=sram_rdata_buf;
+			5'd7: qr_img[1][7]<=sram_rdata_buf;
+			5'd8: qr_img[1][8]<=sram_rdata_buf;
+			5'd9: qr_img[1][9]<=sram_rdata_buf;
+			5'd10: qr_img[1][10]<=sram_rdata_buf;
+			5'd11: qr_img[1][11]<=sram_rdata_buf;
+			5'd12: qr_img[1][12]<=sram_rdata_buf;
+			5'd13: qr_img[1][13]<=sram_rdata_buf;
+			5'd14: qr_img[1][14]<=sram_rdata_buf;
+			5'd15: qr_img[1][15]<=sram_rdata_buf;
+			5'd16: qr_img[1][16]<=sram_rdata_buf;
+			5'd17: qr_img[1][17]<=sram_rdata_buf;
+			5'd18: qr_img[1][18]<=sram_rdata_buf;
+			5'd19: qr_img[1][19]<=sram_rdata_buf;
+			5'd20: qr_img[1][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd2: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[2][0]<=sram_rdata_buf;
+			5'd1: qr_img[2][1]<=sram_rdata_buf;
+			5'd2: qr_img[2][2]<=sram_rdata_buf;
+			5'd3: qr_img[2][3]<=sram_rdata_buf;
+			5'd4: qr_img[2][4]<=sram_rdata_buf;
+			5'd5: qr_img[2][5]<=sram_rdata_buf;
+			5'd6: qr_img[2][6]<=sram_rdata_buf;
+			5'd7: qr_img[2][7]<=sram_rdata_buf;
+			5'd8: qr_img[2][8]<=sram_rdata_buf;
+			5'd9: qr_img[2][9]<=sram_rdata_buf;
+			5'd10: qr_img[2][10]<=sram_rdata_buf;
+			5'd11: qr_img[2][11]<=sram_rdata_buf;
+			5'd12: qr_img[2][12]<=sram_rdata_buf;
+			5'd13: qr_img[2][13]<=sram_rdata_buf;
+			5'd14: qr_img[2][14]<=sram_rdata_buf;
+			5'd15: qr_img[2][15]<=sram_rdata_buf;
+			5'd16: qr_img[2][16]<=sram_rdata_buf;
+			5'd17: qr_img[2][17]<=sram_rdata_buf;
+			5'd18: qr_img[2][18]<=sram_rdata_buf;
+			5'd19: qr_img[2][19]<=sram_rdata_buf;
+			5'd20: qr_img[2][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd3: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[3][0]<=sram_rdata_buf;
+			5'd1: qr_img[3][1]<=sram_rdata_buf;
+			5'd2: qr_img[3][2]<=sram_rdata_buf;
+			5'd3: qr_img[3][3]<=sram_rdata_buf;
+			5'd4: qr_img[3][4]<=sram_rdata_buf;
+			5'd5: qr_img[3][5]<=sram_rdata_buf;
+			5'd6: qr_img[3][6]<=sram_rdata_buf;
+			5'd7: qr_img[3][7]<=sram_rdata_buf;
+			5'd8: qr_img[3][8]<=sram_rdata_buf;
+			5'd9: qr_img[3][9]<=sram_rdata_buf;
+			5'd10: qr_img[3][10]<=sram_rdata_buf;
+			5'd11: qr_img[3][11]<=sram_rdata_buf;
+			5'd12: qr_img[3][12]<=sram_rdata_buf;
+			5'd13: qr_img[3][13]<=sram_rdata_buf;
+			5'd14: qr_img[3][14]<=sram_rdata_buf;
+			5'd15: qr_img[3][15]<=sram_rdata_buf;
+			5'd16: qr_img[3][16]<=sram_rdata_buf;
+			5'd17: qr_img[3][17]<=sram_rdata_buf;
+			5'd18: qr_img[3][18]<=sram_rdata_buf;
+			5'd19: qr_img[3][19]<=sram_rdata_buf;
+			5'd20: qr_img[3][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd4: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[4][0]<=sram_rdata_buf;
+			5'd1: qr_img[4][1]<=sram_rdata_buf;
+			5'd2: qr_img[4][2]<=sram_rdata_buf;
+			5'd3: qr_img[4][3]<=sram_rdata_buf;
+			5'd4: qr_img[4][4]<=sram_rdata_buf;
+			5'd5: qr_img[4][5]<=sram_rdata_buf;
+			5'd6: qr_img[4][6]<=sram_rdata_buf;
+			5'd7: qr_img[4][7]<=sram_rdata_buf;
+			5'd8: qr_img[4][8]<=sram_rdata_buf;
+			5'd9: qr_img[4][9]<=sram_rdata_buf;
+			5'd10: qr_img[4][10]<=sram_rdata_buf;
+			5'd11: qr_img[4][11]<=sram_rdata_buf;
+			5'd12: qr_img[4][12]<=sram_rdata_buf;
+			5'd13: qr_img[4][13]<=sram_rdata_buf;
+			5'd14: qr_img[4][14]<=sram_rdata_buf;
+			5'd15: qr_img[4][15]<=sram_rdata_buf;
+			5'd16: qr_img[4][16]<=sram_rdata_buf;
+			5'd17: qr_img[4][17]<=sram_rdata_buf;
+			5'd18: qr_img[4][18]<=sram_rdata_buf;
+			5'd19: qr_img[4][19]<=sram_rdata_buf;
+			5'd20: qr_img[4][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd5: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[5][0]<=sram_rdata_buf;
+			5'd1: qr_img[5][1]<=sram_rdata_buf;
+			5'd2: qr_img[5][2]<=sram_rdata_buf;
+			5'd3: qr_img[5][3]<=sram_rdata_buf;
+			5'd4: qr_img[5][4]<=sram_rdata_buf;
+			5'd5: qr_img[5][5]<=sram_rdata_buf;
+			5'd6: qr_img[5][6]<=sram_rdata_buf;
+			5'd7: qr_img[5][7]<=sram_rdata_buf;
+			5'd8: qr_img[5][8]<=sram_rdata_buf;
+			5'd9: qr_img[5][9]<=sram_rdata_buf;
+			5'd10: qr_img[5][10]<=sram_rdata_buf;
+			5'd11: qr_img[5][11]<=sram_rdata_buf;
+			5'd12: qr_img[5][12]<=sram_rdata_buf;
+			5'd13: qr_img[5][13]<=sram_rdata_buf;
+			5'd14: qr_img[5][14]<=sram_rdata_buf;
+			5'd15: qr_img[5][15]<=sram_rdata_buf;
+			5'd16: qr_img[5][16]<=sram_rdata_buf;
+			5'd17: qr_img[5][17]<=sram_rdata_buf;
+			5'd18: qr_img[5][18]<=sram_rdata_buf;
+			5'd19: qr_img[5][19]<=sram_rdata_buf;
+			5'd20: qr_img[5][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd6: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[6][0]<=sram_rdata_buf;
+			5'd1: qr_img[6][1]<=sram_rdata_buf;
+			5'd2: qr_img[6][2]<=sram_rdata_buf;
+			5'd3: qr_img[6][3]<=sram_rdata_buf;
+			5'd4: qr_img[6][4]<=sram_rdata_buf;
+			5'd5: qr_img[6][5]<=sram_rdata_buf;
+			5'd6: qr_img[6][6]<=sram_rdata_buf;
+			5'd7: qr_img[6][7]<=sram_rdata_buf;
+			5'd8: qr_img[6][8]<=sram_rdata_buf;
+			5'd9: qr_img[6][9]<=sram_rdata_buf;
+			5'd10: qr_img[6][10]<=sram_rdata_buf;
+			5'd11: qr_img[6][11]<=sram_rdata_buf;
+			5'd12: qr_img[6][12]<=sram_rdata_buf;
+			5'd13: qr_img[6][13]<=sram_rdata_buf;
+			5'd14: qr_img[6][14]<=sram_rdata_buf;
+			5'd15: qr_img[6][15]<=sram_rdata_buf;
+			5'd16: qr_img[6][16]<=sram_rdata_buf;
+			5'd17: qr_img[6][17]<=sram_rdata_buf;
+			5'd18: qr_img[6][18]<=sram_rdata_buf;
+			5'd19: qr_img[6][19]<=sram_rdata_buf;
+			5'd20: qr_img[6][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd7: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[7][0]<=sram_rdata_buf;
+			5'd1: qr_img[7][1]<=sram_rdata_buf;
+			5'd2: qr_img[7][2]<=sram_rdata_buf;
+			5'd3: qr_img[7][3]<=sram_rdata_buf;
+			5'd4: qr_img[7][4]<=sram_rdata_buf;
+			5'd5: qr_img[7][5]<=sram_rdata_buf;
+			5'd6: qr_img[7][6]<=sram_rdata_buf;
+			5'd7: qr_img[7][7]<=sram_rdata_buf;
+			5'd8: qr_img[7][8]<=sram_rdata_buf;
+			5'd9: qr_img[7][9]<=sram_rdata_buf;
+			5'd10: qr_img[7][10]<=sram_rdata_buf;
+			5'd11: qr_img[7][11]<=sram_rdata_buf;
+			5'd12: qr_img[7][12]<=sram_rdata_buf;
+			5'd13: qr_img[7][13]<=sram_rdata_buf;
+			5'd14: qr_img[7][14]<=sram_rdata_buf;
+			5'd15: qr_img[7][15]<=sram_rdata_buf;
+			5'd16: qr_img[7][16]<=sram_rdata_buf;
+			5'd17: qr_img[7][17]<=sram_rdata_buf;
+			5'd18: qr_img[7][18]<=sram_rdata_buf;
+			5'd19: qr_img[7][19]<=sram_rdata_buf;
+			5'd20: qr_img[7][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd8: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[8][0]<=sram_rdata_buf;
+			5'd1: qr_img[8][1]<=sram_rdata_buf;
+			5'd2: qr_img[8][2]<=sram_rdata_buf;
+			5'd3: qr_img[8][3]<=sram_rdata_buf;
+			5'd4: qr_img[8][4]<=sram_rdata_buf;
+			5'd5: qr_img[8][5]<=sram_rdata_buf;
+			5'd6: qr_img[8][6]<=sram_rdata_buf;
+			5'd7: qr_img[8][7]<=sram_rdata_buf;
+			5'd8: qr_img[8][8]<=sram_rdata_buf;
+			5'd9: qr_img[8][9]<=sram_rdata_buf;
+			5'd10: qr_img[8][10]<=sram_rdata_buf;
+			5'd11: qr_img[8][11]<=sram_rdata_buf;
+			5'd12: qr_img[8][12]<=sram_rdata_buf;
+			5'd13: qr_img[8][13]<=sram_rdata_buf;
+			5'd14: qr_img[8][14]<=sram_rdata_buf;
+			5'd15: qr_img[8][15]<=sram_rdata_buf;
+			5'd16: qr_img[8][16]<=sram_rdata_buf;
+			5'd17: qr_img[8][17]<=sram_rdata_buf;
+			5'd18: qr_img[8][18]<=sram_rdata_buf;
+			5'd19: qr_img[8][19]<=sram_rdata_buf;
+			5'd20: qr_img[8][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd9: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[9][0]<=sram_rdata_buf;
+			5'd1: qr_img[9][1]<=sram_rdata_buf;
+			5'd2: qr_img[9][2]<=sram_rdata_buf;
+			5'd3: qr_img[9][3]<=sram_rdata_buf;
+			5'd4: qr_img[9][4]<=sram_rdata_buf;
+			5'd5: qr_img[9][5]<=sram_rdata_buf;
+			5'd6: qr_img[9][6]<=sram_rdata_buf;
+			5'd7: qr_img[9][7]<=sram_rdata_buf;
+			5'd8: qr_img[9][8]<=sram_rdata_buf;
+			5'd9: qr_img[9][9]<=sram_rdata_buf;
+			5'd10: qr_img[9][10]<=sram_rdata_buf;
+			5'd11: qr_img[9][11]<=sram_rdata_buf;
+			5'd12: qr_img[9][12]<=sram_rdata_buf;
+			5'd13: qr_img[9][13]<=sram_rdata_buf;
+			5'd14: qr_img[9][14]<=sram_rdata_buf;
+			5'd15: qr_img[9][15]<=sram_rdata_buf;
+			5'd16: qr_img[9][16]<=sram_rdata_buf;
+			5'd17: qr_img[9][17]<=sram_rdata_buf;
+			5'd18: qr_img[9][18]<=sram_rdata_buf;
+			5'd19: qr_img[9][19]<=sram_rdata_buf;
+			5'd20: qr_img[9][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd10: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[10][0]<=sram_rdata_buf;
+			5'd1: qr_img[10][1]<=sram_rdata_buf;
+			5'd2: qr_img[10][2]<=sram_rdata_buf;
+			5'd3: qr_img[10][3]<=sram_rdata_buf;
+			5'd4: qr_img[10][4]<=sram_rdata_buf;
+			5'd5: qr_img[10][5]<=sram_rdata_buf;
+			5'd6: qr_img[10][6]<=sram_rdata_buf;
+			5'd7: qr_img[10][7]<=sram_rdata_buf;
+			5'd8: qr_img[10][8]<=sram_rdata_buf;
+			5'd9: qr_img[10][9]<=sram_rdata_buf;
+			5'd10: qr_img[10][10]<=sram_rdata_buf;
+			5'd11: qr_img[10][11]<=sram_rdata_buf;
+			5'd12: qr_img[10][12]<=sram_rdata_buf;
+			5'd13: qr_img[10][13]<=sram_rdata_buf;
+			5'd14: qr_img[10][14]<=sram_rdata_buf;
+			5'd15: qr_img[10][15]<=sram_rdata_buf;
+			5'd16: qr_img[10][16]<=sram_rdata_buf;
+			5'd17: qr_img[10][17]<=sram_rdata_buf;
+			5'd18: qr_img[10][18]<=sram_rdata_buf;
+			5'd19: qr_img[10][19]<=sram_rdata_buf;
+			5'd20: qr_img[10][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd11: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[11][0]<=sram_rdata_buf;
+			5'd1: qr_img[11][1]<=sram_rdata_buf;
+			5'd2: qr_img[11][2]<=sram_rdata_buf;
+			5'd3: qr_img[11][3]<=sram_rdata_buf;
+			5'd4: qr_img[11][4]<=sram_rdata_buf;
+			5'd5: qr_img[11][5]<=sram_rdata_buf;
+			5'd6: qr_img[11][6]<=sram_rdata_buf;
+			5'd7: qr_img[11][7]<=sram_rdata_buf;
+			5'd8: qr_img[11][8]<=sram_rdata_buf;
+			5'd9: qr_img[11][9]<=sram_rdata_buf;
+			5'd10: qr_img[11][10]<=sram_rdata_buf;
+			5'd11: qr_img[11][11]<=sram_rdata_buf;
+			5'd12: qr_img[11][12]<=sram_rdata_buf;
+			5'd13: qr_img[11][13]<=sram_rdata_buf;
+			5'd14: qr_img[11][14]<=sram_rdata_buf;
+			5'd15: qr_img[11][15]<=sram_rdata_buf;
+			5'd16: qr_img[11][16]<=sram_rdata_buf;
+			5'd17: qr_img[11][17]<=sram_rdata_buf;
+			5'd18: qr_img[11][18]<=sram_rdata_buf;
+			5'd19: qr_img[11][19]<=sram_rdata_buf;
+			5'd20: qr_img[11][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd12: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[12][0]<=sram_rdata_buf;
+			5'd1: qr_img[12][1]<=sram_rdata_buf;
+			5'd2: qr_img[12][2]<=sram_rdata_buf;
+			5'd3: qr_img[12][3]<=sram_rdata_buf;
+			5'd4: qr_img[12][4]<=sram_rdata_buf;
+			5'd5: qr_img[12][5]<=sram_rdata_buf;
+			5'd6: qr_img[12][6]<=sram_rdata_buf;
+			5'd7: qr_img[12][7]<=sram_rdata_buf;
+			5'd8: qr_img[12][8]<=sram_rdata_buf;
+			5'd9: qr_img[12][9]<=sram_rdata_buf;
+			5'd10: qr_img[12][10]<=sram_rdata_buf;
+			5'd11: qr_img[12][11]<=sram_rdata_buf;
+			5'd12: qr_img[12][12]<=sram_rdata_buf;
+			5'd13: qr_img[12][13]<=sram_rdata_buf;
+			5'd14: qr_img[12][14]<=sram_rdata_buf;
+			5'd15: qr_img[12][15]<=sram_rdata_buf;
+			5'd16: qr_img[12][16]<=sram_rdata_buf;
+			5'd17: qr_img[12][17]<=sram_rdata_buf;
+			5'd18: qr_img[12][18]<=sram_rdata_buf;
+			5'd19: qr_img[12][19]<=sram_rdata_buf;
+			5'd20: qr_img[12][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd13: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[13][0]<=sram_rdata_buf;
+			5'd1: qr_img[13][1]<=sram_rdata_buf;
+			5'd2: qr_img[13][2]<=sram_rdata_buf;
+			5'd3: qr_img[13][3]<=sram_rdata_buf;
+			5'd4: qr_img[13][4]<=sram_rdata_buf;
+			5'd5: qr_img[13][5]<=sram_rdata_buf;
+			5'd6: qr_img[13][6]<=sram_rdata_buf;
+			5'd7: qr_img[13][7]<=sram_rdata_buf;
+			5'd8: qr_img[13][8]<=sram_rdata_buf;
+			5'd9: qr_img[13][9]<=sram_rdata_buf;
+			5'd10: qr_img[13][10]<=sram_rdata_buf;
+			5'd11: qr_img[13][11]<=sram_rdata_buf;
+			5'd12: qr_img[13][12]<=sram_rdata_buf;
+			5'd13: qr_img[13][13]<=sram_rdata_buf;
+			5'd14: qr_img[13][14]<=sram_rdata_buf;
+			5'd15: qr_img[13][15]<=sram_rdata_buf;
+			5'd16: qr_img[13][16]<=sram_rdata_buf;
+			5'd17: qr_img[13][17]<=sram_rdata_buf;
+			5'd18: qr_img[13][18]<=sram_rdata_buf;
+			5'd19: qr_img[13][19]<=sram_rdata_buf;
+			5'd20: qr_img[13][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd14: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[14][0]<=sram_rdata_buf;
+			5'd1: qr_img[14][1]<=sram_rdata_buf;
+			5'd2: qr_img[14][2]<=sram_rdata_buf;
+			5'd3: qr_img[14][3]<=sram_rdata_buf;
+			5'd4: qr_img[14][4]<=sram_rdata_buf;
+			5'd5: qr_img[14][5]<=sram_rdata_buf;
+			5'd6: qr_img[14][6]<=sram_rdata_buf;
+			5'd7: qr_img[14][7]<=sram_rdata_buf;
+			5'd8: qr_img[14][8]<=sram_rdata_buf;
+			5'd9: qr_img[14][9]<=sram_rdata_buf;
+			5'd10: qr_img[14][10]<=sram_rdata_buf;
+			5'd11: qr_img[14][11]<=sram_rdata_buf;
+			5'd12: qr_img[14][12]<=sram_rdata_buf;
+			5'd13: qr_img[14][13]<=sram_rdata_buf;
+			5'd14: qr_img[14][14]<=sram_rdata_buf;
+			5'd15: qr_img[14][15]<=sram_rdata_buf;
+			5'd16: qr_img[14][16]<=sram_rdata_buf;
+			5'd17: qr_img[14][17]<=sram_rdata_buf;
+			5'd18: qr_img[14][18]<=sram_rdata_buf;
+			5'd19: qr_img[14][19]<=sram_rdata_buf;
+			5'd20: qr_img[14][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd15: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[15][0]<=sram_rdata_buf;
+			5'd1: qr_img[15][1]<=sram_rdata_buf;
+			5'd2: qr_img[15][2]<=sram_rdata_buf;
+			5'd3: qr_img[15][3]<=sram_rdata_buf;
+			5'd4: qr_img[15][4]<=sram_rdata_buf;
+			5'd5: qr_img[15][5]<=sram_rdata_buf;
+			5'd6: qr_img[15][6]<=sram_rdata_buf;
+			5'd7: qr_img[15][7]<=sram_rdata_buf;
+			5'd8: qr_img[15][8]<=sram_rdata_buf;
+			5'd9: qr_img[15][9]<=sram_rdata_buf;
+			5'd10: qr_img[15][10]<=sram_rdata_buf;
+			5'd11: qr_img[15][11]<=sram_rdata_buf;
+			5'd12: qr_img[15][12]<=sram_rdata_buf;
+			5'd13: qr_img[15][13]<=sram_rdata_buf;
+			5'd14: qr_img[15][14]<=sram_rdata_buf;
+			5'd15: qr_img[15][15]<=sram_rdata_buf;
+			5'd16: qr_img[15][16]<=sram_rdata_buf;
+			5'd17: qr_img[15][17]<=sram_rdata_buf;
+			5'd18: qr_img[15][18]<=sram_rdata_buf;
+			5'd19: qr_img[15][19]<=sram_rdata_buf;
+			5'd20: qr_img[15][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd16: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[16][0]<=sram_rdata_buf;
+			5'd1: qr_img[16][1]<=sram_rdata_buf;
+			5'd2: qr_img[16][2]<=sram_rdata_buf;
+			5'd3: qr_img[16][3]<=sram_rdata_buf;
+			5'd4: qr_img[16][4]<=sram_rdata_buf;
+			5'd5: qr_img[16][5]<=sram_rdata_buf;
+			5'd6: qr_img[16][6]<=sram_rdata_buf;
+			5'd7: qr_img[16][7]<=sram_rdata_buf;
+			5'd8: qr_img[16][8]<=sram_rdata_buf;
+			5'd9: qr_img[16][9]<=sram_rdata_buf;
+			5'd10: qr_img[16][10]<=sram_rdata_buf;
+			5'd11: qr_img[16][11]<=sram_rdata_buf;
+			5'd12: qr_img[16][12]<=sram_rdata_buf;
+			5'd13: qr_img[16][13]<=sram_rdata_buf;
+			5'd14: qr_img[16][14]<=sram_rdata_buf;
+			5'd15: qr_img[16][15]<=sram_rdata_buf;
+			5'd16: qr_img[16][16]<=sram_rdata_buf;
+			5'd17: qr_img[16][17]<=sram_rdata_buf;
+			5'd18: qr_img[16][18]<=sram_rdata_buf;
+			5'd19: qr_img[16][19]<=sram_rdata_buf;
+			5'd20: qr_img[16][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd17: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[17][0]<=sram_rdata_buf;
+			5'd1: qr_img[17][1]<=sram_rdata_buf;
+			5'd2: qr_img[17][2]<=sram_rdata_buf;
+			5'd3: qr_img[17][3]<=sram_rdata_buf;
+			5'd4: qr_img[17][4]<=sram_rdata_buf;
+			5'd5: qr_img[17][5]<=sram_rdata_buf;
+			5'd6: qr_img[17][6]<=sram_rdata_buf;
+			5'd7: qr_img[17][7]<=sram_rdata_buf;
+			5'd8: qr_img[17][8]<=sram_rdata_buf;
+			5'd9: qr_img[17][9]<=sram_rdata_buf;
+			5'd10: qr_img[17][10]<=sram_rdata_buf;
+			5'd11: qr_img[17][11]<=sram_rdata_buf;
+			5'd12: qr_img[17][12]<=sram_rdata_buf;
+			5'd13: qr_img[17][13]<=sram_rdata_buf;
+			5'd14: qr_img[17][14]<=sram_rdata_buf;
+			5'd15: qr_img[17][15]<=sram_rdata_buf;
+			5'd16: qr_img[17][16]<=sram_rdata_buf;
+			5'd17: qr_img[17][17]<=sram_rdata_buf;
+			5'd18: qr_img[17][18]<=sram_rdata_buf;
+			5'd19: qr_img[17][19]<=sram_rdata_buf;
+			5'd20: qr_img[17][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd18: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[18][0]<=sram_rdata_buf;
+			5'd1: qr_img[18][1]<=sram_rdata_buf;
+			5'd2: qr_img[18][2]<=sram_rdata_buf;
+			5'd3: qr_img[18][3]<=sram_rdata_buf;
+			5'd4: qr_img[18][4]<=sram_rdata_buf;
+			5'd5: qr_img[18][5]<=sram_rdata_buf;
+			5'd6: qr_img[18][6]<=sram_rdata_buf;
+			5'd7: qr_img[18][7]<=sram_rdata_buf;
+			5'd8: qr_img[18][8]<=sram_rdata_buf;
+			5'd9: qr_img[18][9]<=sram_rdata_buf;
+			5'd10: qr_img[18][10]<=sram_rdata_buf;
+			5'd11: qr_img[18][11]<=sram_rdata_buf;
+			5'd12: qr_img[18][12]<=sram_rdata_buf;
+			5'd13: qr_img[18][13]<=sram_rdata_buf;
+			5'd14: qr_img[18][14]<=sram_rdata_buf;
+			5'd15: qr_img[18][15]<=sram_rdata_buf;
+			5'd16: qr_img[18][16]<=sram_rdata_buf;
+			5'd17: qr_img[18][17]<=sram_rdata_buf;
+			5'd18: qr_img[18][18]<=sram_rdata_buf;
+			5'd19: qr_img[18][19]<=sram_rdata_buf;
+			5'd20: qr_img[18][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd19: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[19][0]<=sram_rdata_buf;
+			5'd1: qr_img[19][1]<=sram_rdata_buf;
+			5'd2: qr_img[19][2]<=sram_rdata_buf;
+			5'd3: qr_img[19][3]<=sram_rdata_buf;
+			5'd4: qr_img[19][4]<=sram_rdata_buf;
+			5'd5: qr_img[19][5]<=sram_rdata_buf;
+			5'd6: qr_img[19][6]<=sram_rdata_buf;
+			5'd7: qr_img[19][7]<=sram_rdata_buf;
+			5'd8: qr_img[19][8]<=sram_rdata_buf;
+			5'd9: qr_img[19][9]<=sram_rdata_buf;
+			5'd10: qr_img[19][10]<=sram_rdata_buf;
+			5'd11: qr_img[19][11]<=sram_rdata_buf;
+			5'd12: qr_img[19][12]<=sram_rdata_buf;
+			5'd13: qr_img[19][13]<=sram_rdata_buf;
+			5'd14: qr_img[19][14]<=sram_rdata_buf;
+			5'd15: qr_img[19][15]<=sram_rdata_buf;
+			5'd16: qr_img[19][16]<=sram_rdata_buf;
+			5'd17: qr_img[19][17]<=sram_rdata_buf;
+			5'd18: qr_img[19][18]<=sram_rdata_buf;
+			5'd19: qr_img[19][19]<=sram_rdata_buf;
+			5'd20: qr_img[19][20]<=sram_rdata_buf;
+		endcase
+		end
+		5'd20: begin
+		case(img_x_buf - confirm_left_most_x) // synopsys full_case parallel_case
+			5'd0: qr_img[20][0]<=sram_rdata_buf;
+			5'd1: qr_img[20][1]<=sram_rdata_buf;
+			5'd2: qr_img[20][2]<=sram_rdata_buf;
+			5'd3: qr_img[20][3]<=sram_rdata_buf;
+			5'd4: qr_img[20][4]<=sram_rdata_buf;
+			5'd5: qr_img[20][5]<=sram_rdata_buf;
+			5'd6: qr_img[20][6]<=sram_rdata_buf;
+			5'd7: qr_img[20][7]<=sram_rdata_buf;
+			5'd8: qr_img[20][8]<=sram_rdata_buf;
+			5'd9: qr_img[20][9]<=sram_rdata_buf;
+			5'd10: qr_img[20][10]<=sram_rdata_buf;
+			5'd11: qr_img[20][11]<=sram_rdata_buf;
+			5'd12: qr_img[20][12]<=sram_rdata_buf;
+			5'd13: qr_img[20][13]<=sram_rdata_buf;
+			5'd14: qr_img[20][14]<=sram_rdata_buf;
+			5'd15: qr_img[20][15]<=sram_rdata_buf;
+			5'd16: qr_img[20][16]<=sram_rdata_buf;
+			5'd17: qr_img[20][17]<=sram_rdata_buf;
+			5'd18: qr_img[20][18]<=sram_rdata_buf;
+			5'd19: qr_img[20][19]<=sram_rdata_buf;
+			5'd20: qr_img[20][20]<=sram_rdata_buf;
+		endcase
+		end
+		endcase	
+
 	end
 	// ROTATE
-	else if (rotate_cnt > 0 && state == ROTATE) begin
-		for (i = 0; i<21; i = i + 1) begin
-			for (j=0; j<21; j= j+1) begin
-				qr_img[j][20-i] <= qr_img[i][j];
+	else if (state == ROTATE) begin
+		if (rotate_cnt > 0)
+			for (i = 0; i<21; i = i + 1) begin
+				for (j=0; j<21; j= j+1) begin
+					qr_img[j][20-i] <= qr_img[i][j];
+				end
 			end
-		end
 	end
 	else if (state == DEMASK) begin
 		case(mask_pattern)
@@ -584,6 +1114,7 @@ always @(posedge clk) begin
 			end
 		end						
 	end
+
 end
 
 integer r0, c0;
@@ -1356,9 +1887,6 @@ reg [8:0] alpha1_a_t, alpha2_a_t;
 reg [8:0] S0_a, S1_a, S2_a, S3_a, S4_a, S5_a;
 reg [8:0] S3_t;
 reg [8:0] S0_a_t, S1_a_t, S2_a_t, S3_a_t;
-reg [8:0] S6, S7, S6_a, S7_a, S8, S8_a;
-reg [8:0] S9, S9_a;
-reg [8:0] S10, S10_a;
 reg [8:0] ai1, ai2;
 reg [8:0] ai1_a, ai2_a;
 reg [8:0] temp_sum;
@@ -1372,8 +1900,6 @@ reg [8:0] a1_a, a2_a, b1_a, b2_a, c3_a, c4_a;
 reg [8:0] ai1_s, ai2_s;
 reg [8:0] ai1_s_a, ai2_s_a;
 reg [8:0] diff_a;
-reg [8:0] unknown_x, unknown_y;
-reg [8:0] unknown_x_a, unknown_y_a;
 reg [7:0] offset1, offset2;
 reg [8:0] correcting_cnt;
 reg [8:0] alpha1x;
@@ -1428,8 +1954,8 @@ always @(posedge clk) begin
 				alpha_array[i] <= i2a0_a;
 		end
 		if (decoding_state == 0) begin
-			if (err_cnt < 26) begin
-				S0 <= S0_t;			
+			if (err_cnt == 1) begin
+				S0 <= S0_t;		
 			end
 			if ( 2 < err_cnt && err_cnt < 29) begin
 				S1 <= S1_t;
@@ -1572,8 +2098,9 @@ always @* begin
 				if (err_cnt == i)
 		        	i2a0_i = codewords[i*8 +:8];
 
-			if ( err_cnt < 26)
-				S0_t = S0 ^ codewords[(err_cnt)*8 +:8];
+		    for (i = 0; i<26; i=i+1) begin
+		    	S0_t = S0_t ^ codewords[(i)*8 +:8];
+		    end
 
 			for (i=0; i<26; i=i+1) begin
 				if (err_cnt==i+2) 
