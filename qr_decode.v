@@ -135,12 +135,6 @@ i2a i2a0(
 	.a(i2a0_a)
 );
 
-
-
-
-
-
-
 always @(posedge clk) begin
 	if (!srstn) begin
 		state <= IDLE;
@@ -210,7 +204,7 @@ always @(posedge clk) begin
 			// $display("Y1 = %d, Y2 = %d", Y1, Y2);
 			// $display("--------------------");
 		end
-		else if (output_cnt == text_length) begin
+		if (output_cnt == text_length) begin
 			state <= FINISH;
 		end
 		else begin
@@ -1281,8 +1275,157 @@ reg [7:0] decode_jis8_code_buf;
 // TODO
 always @* begin
 	decode_valid_buf = state == WRITE && output_cnt < text_length;
-	decode_jis8_code_buf[3:0] = correct_codewords[{(output_cnt+2), 3'b0}  +4  +:4];
-	decode_jis8_code_buf[7:4] = correct_codewords[{(output_cnt+1), 3'b0} 	  +:4];
+	case(output_cnt) // synopsys full_case parallel_case
+	    0:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(0+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(0+1), 3'b0} 	  +:4];
+	    end
+
+	    1:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(1+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(1+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    2:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(2+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(2+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    3:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(3+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(3+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    4:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(4+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(4+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    5:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(5+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(5+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    6:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(6+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(6+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    7:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(7+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(7+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    8:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(8+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(8+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    9:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(9+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(9+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    10:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(10+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(10+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    11:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(11+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(11+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    12:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(12+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(12+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    13:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(13+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(13+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    14:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(14+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(14+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    15:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(15+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(15+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    16:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(16+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(16+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    17:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(17+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(17+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    18:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(18+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(18+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    19:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(19+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(19+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    20:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(20+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(20+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    21:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(21+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(21+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    22:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(22+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(22+1), 3'b0} 	  +:4];
+	    end
+	    
+
+	    23:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(23+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(23+1), 3'b0} 	  +:4];
+	    end
+	    24:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(24+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(24+1), 3'b0} 	  +:4];
+	    end
+	    25:begin
+	        decode_jis8_code_buf[3:0] = correct_codewords[{(25+2), 3'b0}  +4  +:4];
+	        decode_jis8_code_buf[7:4] = correct_codewords[{(25+1), 3'b0} 	  +:4];
+	    end
+    endcase
 end
 
 always @(posedge clk) begin
@@ -1465,7 +1608,28 @@ always @* begin
 end
 
 // TODO 優化alpha_array selection
-always @* begin
+always @* begin	    
+	S0_t = 0;
+	S1_t = 0;
+	S2_t = 0;
+	S3_t = 0;
+	alpha1_a_t = 0;
+	alpha2_a_t = 0;
+	alpha1_t = 0;
+	alpha2_t = 0;
+	alpha1_t = 0;
+	ai1_a_t = 0;
+	ai2_a_t = 0;
+	findfirstai0_t = 0;
+	findfirstai1_t = 0;
+	a2i0_a = 0;
+	a2i1_a = 0;
+	i2a0_i = 0;
+	ai1_t = 0;
+	ai2_t = 0;
+	ai1_s_t = 0;
+	ai2_s_t = 0;
+
 	case (decoding_state)
 		0: begin
 			//  compute alpha_array
