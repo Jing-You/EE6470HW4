@@ -44,26 +44,5 @@ NameOfPolicy    VersionNumber   Path (from where policy loaded)
 ===============================================================================
 spyglass        SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/spyglass
 lint            SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/lint
-Audits          SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/Audits
-area            SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/area
-latch           SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/latch
-miscellaneous   SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/miscellaneous
-morelint        SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/morelint
-openmore        SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/openmore
-starc           SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/starc
-starc2002       SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/starc2002
-timing          SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/timing
-starcad-21      SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/starcad-21
-erc             SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/erc
-simulation      SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/simulation
-starc2005       SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/starc2005
-txv             SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/txv
-power_est       SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/power_est
-lowpower        5.6.1           $SPYGLASS_HOME/policies/lowpower
-dft_dsm         SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/dft_dsm
-dft             SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/dft
-constraints     SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/constraints
-const_intern1   SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/constraints
-clock-reset     SpyGlass_vO-2018.09-SP2 $SPYGLASS_HOME/policies/clock
 
 

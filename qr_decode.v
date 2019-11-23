@@ -13,9 +13,10 @@ output reg qr_decode_finish          //1: decoding one QR code is finished
 );
 
 parameter IMG_LEN = 64, QR_LEN = 21;
-parameter IDLE = 0, READ = 1, PROCESSING = 2,  ROTATE = 3, DECODING = 4, DEMASK=5, WRITE =6, FINISH = 7, READ_AFTER=8, SEARCH = 9, CORRECING=10;
+parameter IDLE = 0, READ = 1, PROCESSING = 2,  ROTATE = 3, DECODING = 4, DEMASK=5, WRITE =6, FINISH = 7, READ_AFTER=8, SEARCH = 9, CORRECING=10, SEARCH_CORNER = 10;
 parameter topleft = 0, bottomright = 1;
-parameter MAIND = 0, OFFD= 1 , TOP= 2, LEFT = 3, TOP2 = 4, CHKR=5,CHKB=6, SEARCH_FINISH=7; 
+parameter MAIND = 0, OFFD= 1 , TOP= 2, LEFT = 3, TOP2 = 4, CHKR=5,CHKB=6, SEARCH_FINISH=7;
+
 reg qr_img_temp[QR_LEN-1:0][QR_LEN-1:0];
 reg qr_img[QR_LEN-1:0][QR_LEN-1:0];
 wire corner[2:0][2:0];
@@ -33,7 +34,7 @@ reg [6:0] err_cnt;
 reg [4:0] output_cnt;
 reg [7:0] text_length;
 reg searched_position;
-
+reg [2:0] read_state;
 assign corner[0][0] = 1;
 assign corner[0][1] = 1;
 assign corner[0][2] = 1;
@@ -55,6 +56,9 @@ integer i, j, k, l;
 reg rotate_finished;
 reg [207:0]codewords;
 reg [207+8:0]correct_codewords;
+
+reg [1:0] is_bt;
+
 reg [1:0]rotate_cnt;
 
 reg [8:0]S0, S0_t;
@@ -69,7 +73,7 @@ wire error_occur = S0 != 0 || S1 != 0 || S2 != 0 || S3 != 0;
 reg [7:0] codeword [25:0];
 reg [7:0] alpha_array[25:0];
 reg [8:0] Y1, Y2, Y1_a, Y2_a;
-reg [2:0] search_state;
+reg [3:0] search_state;
 reg [9:0] search_cnt;
 
 wire [7:0] a2i0_i, a2i1_i;
@@ -79,7 +83,7 @@ reg [7:0] i2a0_i, i2a1_i;
 
 reg [6:0] img_x_buf;
 reg [6:0] img_y_buf;
-
+reg check_corner; 
 a2i a2i0(
 	.clk(clk),
 	.a(a2i0_a),
@@ -108,14 +112,28 @@ always @(posedge clk) begin
 	end
 	else if (state == SEARCH) begin
 		if (search_state == SEARCH_FINISH)
-			state <= READ;
+			state <= SEARCH_CORNER;
 		else begin
 			state <= state;
 		end
 	end
+	else if (state == SEARCH_CORNER) begin
+		if (check_corner) begin
+			// $display("\n---is_bt = %d", is_bt);
+			// $display("\n---corner(%d, %d)", confirm_top_most_y, confirm_left_most_x);
+			state <= READ;
+		end
+		else
+			state <= state;
+	end
 	else if (state == READ) begin
-		if (read_finished) begin
+		if (read_state == 5) begin
 			state <= READ_AFTER;
+			// for(i=0; i<21; i=i+1) begin
+			//  	for(j=0; j<21; j=j+1) begin
+			//  		$wire
+			//  	end
+			// end
 		end
 		else begin
 			state <= READ;
@@ -149,7 +167,6 @@ always @(posedge clk) begin
 		end 
 		else
 			state <= DECODING;
-
 	end
 	else if (state == WRITE) begin
 		
@@ -175,6 +192,8 @@ always @(posedge clk) begin
 		img_y <= 10;
 		search_state <= MAIND;
 		search_cnt <= 0;
+		check_corner <= 0;
+		read_state <= 0;
 	end
 	else if (state == SEARCH) begin
 		if (search_state == MAIND) begin
@@ -271,6 +290,7 @@ always @(posedge clk) begin
 				confirm_top_most_y <= img_y - 20;
 				img_x <= left_most_x;
 				img_y <= top_most_y;
+				search_cnt <= 0;
 				search_state <= SEARCH_FINISH;
 			end
 			// find corner failt, turn to find right
@@ -344,25 +364,207 @@ always @(posedge clk) begin
 			search_state <= SEARCH_FINISH;
 		end
 	end
-	else if (state == READ) begin
-		
-		search_cnt <= search_cnt + 1;
-		if(img_x < confirm_left_most_x + QR_LEN -1) begin
-			img_x <= img_x + 1;
-			img_y <= img_y;
+	else if (state == SEARCH_CORNER) begin
+		// $display("img_y = %d, img_x = %d, search_cnt = %d, sram_rdata = %d", img_y-  confirm_top_most_y , img_x- confirm_left_most_x, search_cnt, sram_rdata);
+		// if (search_cnt == 33) begin
+		// 	check_corner <= 1;
+		// 	img_y <= confirm_top_most_y;
+		// 	img_x <= confirm_left_most_x;
+		// 	search_cnt <= 0;
+		// 	// $finish();
+		// end
+		if (search_cnt == 0) begin
+			img_y <= confirm_top_most_y + 7;
+			img_x <= confirm_left_most_x;			
+		end
+		else if (search_cnt > 24) begin
+			is_bt <= 3;
+			check_corner <= 1;
+			search_cnt <= 0;
+			img_y <= confirm_top_most_y;
+			img_x <= confirm_left_most_x;
+		end
+		else if (sram_rdata) begin
+			check_corner <= 1;
+			search_cnt <= 0;
+			img_y <= confirm_top_most_y;
+			img_x <= confirm_left_most_x;
+			if (search_cnt<= 8) begin
+				is_bt <= 0;
+			end
+			else if (search_cnt <= 16) begin
+				is_bt <= 1;
+			end
+			else if (search_cnt <= 24) begin
+				is_bt <= 2;
+			end
 		end
 		else begin
-			img_x <= confirm_left_most_x; 
-			img_y <= img_y + 1;
+			if (search_cnt == 16) begin
+				img_y <= confirm_top_most_y + 13;
+			end
+
+			if (search_cnt < 8) begin
+				img_x <=  img_x + 1;
+			end
+			else if (search_cnt == 8) begin
+				img_x <= confirm_left_most_x + 13;
+			end
+			else if (search_cnt> 8 && search_cnt <16) begin
+				img_x <=  img_x + 1;
+			end
+			else if (search_cnt == 16) begin
+				img_x <= confirm_left_most_x;
+			end
+			else if (search_cnt > 16 && search_cnt <24) begin
+				img_x <=  img_x + 1;
+			end
+			else if (search_cnt == 24) begin
+				img_x <= confirm_left_most_x + 13;
+			end
+		end
+		search_cnt <= search_cnt + 1;
+	end
+	else if (state == READ) begin
+		// search_cnt <= search_cnt + 1;
+		// $display("(%d %d), read_state = %d", img_y - confirm_top_most_y, img_x - confirm_left_most_x, read_state);
+		if (read_state == 0) begin
+			read_state <= 1;
+			img_x <= confirm_left_most_x + 8;
+			img_y <= confirm_top_most_y;
+		end
+		else if (read_state == 1) begin
+			if(img_y == 7  + confirm_top_most_y && img_x == 12 + confirm_left_most_x) begin
+				read_state <= 2;
+				img_x <= confirm_left_most_x;
+				img_y <= img_y + 1; 
+			end
+			else if (img_x == confirm_left_most_x + 12) begin
+				img_x <= confirm_left_most_x + 8; 
+				img_y <= img_y + 1; 
+			end
+			else begin
+				img_x <= img_x + 1; 
+				img_y <= img_y ; 
+			end
+		end
+		else if (read_state == 2) begin
+			if(img_y == 12  + confirm_top_most_y && img_x == 20 + confirm_left_most_x) begin
+				read_state <= 3;
+				img_x <= confirm_left_most_x + 8;
+				img_y <= img_y + 1; 
+			end
+			else if (img_x == confirm_left_most_x + 20) begin
+				img_x <= confirm_left_most_x; 
+				img_y <= img_y + 1; 
+			end
+			else begin
+				img_x <= img_x + 1; 
+				img_y <= img_y ; 
+			end
+		end
+		else if (read_state == 3) begin
+			if(img_y == 20  + confirm_top_most_y && img_x == 12 + confirm_left_most_x) begin
+				read_state <= 4;
+				if (is_bt == 0) begin
+					img_x <= 0 + confirm_left_most_x;
+					img_y <= 0 + confirm_top_most_y;
+				end
+				else if (is_bt == 1) begin
+					img_x <= 13 + confirm_left_most_x;
+					img_y <= 0 + confirm_top_most_y;					
+				end
+				else if (is_bt == 2) begin
+					img_x <= 0+ confirm_left_most_x;
+					img_y <= 13 + confirm_top_most_y;
+				end
+				else if (is_bt == 3) begin
+					img_x <= 13+ confirm_left_most_x;
+					img_y <= 13 + confirm_top_most_y;					
+				end
+			end
+			else if (img_x == confirm_left_most_x + 12) begin
+				img_x <= confirm_left_most_x + 8; 
+				img_y <= img_y + 1; 
+			end
+			else begin
+				img_x <= img_x + 1; 
+				img_y <= img_y ; 
+			end			
+		end
+		else if (read_state == 4) begin
+			case (is_bt)
+			0:
+				if (img_x == 7  + confirm_left_most_x && img_y == 7 + confirm_top_most_y) begin
+					img_x <= img_x;
+					img_y <= img_y;
+					read_state <= 5;
+				end
+				else if (img_x == 7 + confirm_left_most_x) begin
+					img_x <= confirm_left_most_x + 0;
+					img_y <= img_y + 1;
+				end
+				else begin
+					img_x <= img_x + 1;
+					img_y <= img_y;
+				end
+			1:
+				if (img_x == 20  + confirm_left_most_x && img_y == 20 + confirm_top_most_y) begin
+					img_x <= img_x;
+					img_y <= img_y;
+					read_state <= 5;
+				end
+				else if (img_x == 20 + confirm_left_most_x) begin
+					img_x <= confirm_left_most_x + 13;
+					img_y <= img_y + 1;
+				end
+				else begin
+					img_x <= img_x + 1;
+					img_y <= img_y;
+				end
+			2:	if (img_x == 7 + confirm_left_most_x && img_y == 20 + confirm_top_most_y) begin
+					img_x <= img_x;
+					img_y <= img_y;
+					read_state <= 5;
+				end
+				else if (img_x == 20 + confirm_left_most_x) begin
+					img_x <= confirm_left_most_x + 0;
+					img_y <= img_y + 1;
+				end
+				else begin
+					img_x <= img_x + 1;
+					img_y <= img_y;
+				end
+			3:  if (img_x == 20 + confirm_left_most_x && img_y == 20 + confirm_top_most_y) begin
+					img_x <= img_x;
+					img_y <= img_y;
+					read_state <= 5;
+				end
+				else if (img_x == 20 + confirm_left_most_x) begin
+					img_x <= confirm_left_most_x + 13;
+					img_y <= img_y + 1;
+				end
+				else begin
+					img_x <= img_x + 1;
+					img_y <= img_y;
+				end
+			endcase
+		end
+		else if (read_state == 5) begin
+			img_x <= img_x;
+			img_y <= img_y;
+			read_state <= read_state;
 		end
 	end
 	else begin
+
 	end
 end
 
-always @* begin
-	read_finished = state == READ && img_y == confirm_top_most_y + QR_LEN;
-end
+
+// always @* begin
+// 	read_finished = state == READ && img_y == confirm_top_most_y + QR_LEN;
+// end
 
 always @(posedge clk) begin
 	if (!srstn) begin
@@ -1120,42 +1322,13 @@ end
 integer r0, c0;
 always @* begin
 	
-	corner_detect0 = 1;
-	corner_detect1 = 1;
-	corner_detect2 = 1;
-
-	for (r0 = 0; r0<3; r0=r0+1) begin
-		for(c0=0; c0<3; c0=c0+1) begin
-			if (qr_img[r0][c0] != corner[r0][c0]) begin
-				corner_detect0 = 0;
-			end
-		end
-	end
-
-	for (r0 = 0; r0<3; r0=r0+1) begin
-		for(c0=0; c0<3; c0=c0+1) begin
-			if (qr_img[r0][c0+x_corner1] != corner[r0][c0]) begin
-				corner_detect1 = 0;
-			end
-		end
-	end
-
-
-	for (r0 = 0; r0<3; r0=r0+1) begin
-		for(c0=0; c0<3; c0=c0+1) begin
-			if (qr_img[r0+y_corner2][c0] != corner[r0][c0]) begin
-				corner_detect2 = 0;
-			end
-		end
-	end
-
-	if (corner_detect0 == 0) begin
+	if (is_bt == 0) begin
 		need_rotate_times = 2'b10;
 	end
-	else if (corner_detect1 == 0 ) begin
+	else if (is_bt == 1 ) begin
 		need_rotate_times = 2'b01;		
 	end
-	else if (corner_detect2 == 0) begin
+	else if (is_bt == 2) begin
 		need_rotate_times = 2'b11;		
 	end
 	else begin
