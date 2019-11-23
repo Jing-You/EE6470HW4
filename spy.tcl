@@ -1,4 +1,4 @@
-read_file -type verilog qr_decode.v
+read_file -type verilog qr_decode.v a2i.v i2a.v
 
 current_goal lint/lint_rtl -alltop
 

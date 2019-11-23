@@ -1,0 +1,16 @@
+SCHEMA@@PName@@HierName
+VALUE@@srstn@@qr_decode
+VALUE@@qr_decode_start@@qr_decode
+VALUE@@sram_rdata@@qr_decode
+VALUE@@sram_raddr[0]@@qr_decode
+VALUE@@sram_raddr[1]@@qr_decode
+VALUE@@sram_raddr[2]@@qr_decode
+VALUE@@sram_raddr[3]@@qr_decode
+VALUE@@sram_raddr[4]@@qr_decode
+VALUE@@sram_raddr[5]@@qr_decode
+VALUE@@sram_raddr[6]@@qr_decode
+VALUE@@sram_raddr[7]@@qr_decode
+VALUE@@sram_raddr[8]@@qr_decode
+VALUE@@sram_raddr[9]@@qr_decode
+VALUE@@sram_raddr[10]@@qr_decode
+VALUE@@sram_raddr[11]@@qr_decode

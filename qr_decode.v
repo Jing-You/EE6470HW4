@@ -18,7 +18,7 @@ parameter topleft = 0, bottomright = 1;
 parameter MAIND = 0, OFFD= 1 , TOP= 2, LEFT = 3, TOP2 = 4, CHKR=5,CHKB=6, SEARCH_FINISH=7; 
 reg qr_img_temp[QR_LEN-1:0][QR_LEN-1:0];
 reg qr_img[QR_LEN-1:0][QR_LEN-1:0];
-wire corner[6:0][6:0];
+wire corner[2:0][2:0];
 
 reg [6:0] top_most_y, left_most_x;
 reg [6:0] confirm_top_most_y, confirm_left_most_x;
@@ -29,60 +29,21 @@ reg corner_detect0;
 reg corner_detect1;
 reg corner_detect2;
 reg corner_detect3;
-reg [7:0] err_cnt;
-reg [7:0] output_cnt;
+reg [6:0] err_cnt;
+reg [4:0] output_cnt;
 reg [7:0] text_length;
-
 reg searched_position;
+
+
 assign corner[0][0] = 1;
 assign corner[0][1] = 1;
 assign corner[0][2] = 1;
-assign corner[0][3] = 1;
-assign corner[0][4] = 1;
-assign corner[0][5] = 1;
-assign corner[0][6] = 1;
 assign corner[1][0] = 1;
 assign corner[1][1] = 0;
 assign corner[1][2] = 0;
-assign corner[1][3] = 0;
-assign corner[1][4] = 0;
-assign corner[1][5] = 0;
-assign corner[1][6] = 1;
 assign corner[2][0] = 1;
 assign corner[2][1] = 0;
 assign corner[2][2] = 1;
-assign corner[2][3] = 1;
-assign corner[2][4] = 1;
-assign corner[2][5] = 0;
-assign corner[2][6] = 1;
-assign corner[3][0] = 1;
-assign corner[3][1] = 0;
-assign corner[3][2] = 1;
-assign corner[3][3] = 1;
-assign corner[3][4] = 1;
-assign corner[3][5] = 0;
-assign corner[3][6] = 1;
-assign corner[4][0] = 1;
-assign corner[4][1] = 0;
-assign corner[4][2] = 1;
-assign corner[4][3] = 1;
-assign corner[4][4] = 1;
-assign corner[4][5] = 0;
-assign corner[4][6] = 1;
-assign corner[5][0] = 1;
-assign corner[5][1] = 0;
-assign corner[5][2] = 0;
-assign corner[5][3] = 0;
-assign corner[5][4] = 0;
-assign corner[5][5] = 0;
-assign corner[5][6] = 1;
-assign corner[6][0] = 1;
-assign corner[6][1] = 1;
-assign corner[6][2] = 1;
-assign corner[6][3] = 1;
-assign corner[6][4] = 1;
-assign corner[6][5] = 1;
-assign corner[6][6] = 1;
 reg findfirstai0, findfirstai1, findfirstai0_t, findfirstai1_t;
 reg [3:0] state;
 reg [20:0] start_point_x;
@@ -116,6 +77,13 @@ wire [7:0] i2a0_a, i2a1_a;
 reg [7:0] a2i0_a, a2i1_a, a2i2_a, a2i3_a;
 reg [7:0] i2a0_i, i2a1_i;
 
+reg [7:0] img_x_buf;
+reg [7:0] img_y_buf;
+
+always @(posedge clk) begin
+	if (state == WRITE || state == SEARCH_FINISH)
+		img[img_y][img_x] <= sram_rdata;
+end
 
 a2i a2i0(
 	.clk(clk),
@@ -134,6 +102,7 @@ i2a i2a0(
 	.i(i2a0_i),
 	.a(i2a0_a)
 );
+
 
 always @(posedge clk) begin
 	if (!srstn) begin
@@ -186,7 +155,6 @@ always @(posedge clk) begin
 			state <= WRITE;
 		end
 		else if (!findfirstai1 && err_cnt == 73) begin
-			// $display("cond2");
 			state <= WRITE;
 		end 
 		else
@@ -194,16 +162,7 @@ always @(posedge clk) begin
 
 	end
 	else if (state == WRITE) begin
-		if (output_cnt == 0) begin
-			// $display(" ");
-			// $display("--------------------");
-			// $display("S0_a= %d, S1_a =%d, S2_a =%d, S3_a= %d", S0_a, S1_a, S2_a, S3_a);
-			// $display("alpha1_a = %d, alpha2_a = %d", alpha1_a, alpha2_a);
-			// $display("ai1_a = %d, ai2_a = %d", ai1_a, ai2_a);
-			// $display("Y1_a = %d, Y2_a = %d", Y1_a, Y2_a);
-			// $display("Y1 = %d, Y2 = %d", Y1, Y2);
-			// $display("--------------------");
-		end
+		
 		if (output_cnt == text_length) begin
 			state <= FINISH;
 		end
@@ -217,8 +176,6 @@ always @(posedge clk) begin
 end
 
 always @* begin
-	// sram_raddr = img_x + img_y * 64;
-	// sram_raddr = img_x + (img_y << 6);
 	sram_raddr = img_x + ({img_y, 6'b0 });
 end
 
@@ -255,8 +212,8 @@ always @(posedge clk) begin
 				search_cnt <= 0;
 			end
 			else if (img_y >= 63) begin
-				$display("search fail");
-				$finish();
+				// $display("search fail");
+				// $finish();
 			end
 			else begin
 				img_x <= img_x - 1;
@@ -400,9 +357,6 @@ always @(posedge clk) begin
 	else if (state == READ) begin
 		
 		search_cnt <= search_cnt + 1;
-		if (search_cnt > 21*21 + 3)
-			$finish();
-		// $display("READ: img_x=%d img_y=%d, search_cnt=%d", img_x, img_y, search_cnt);
 		if(img_x < confirm_left_most_x + QR_LEN -1) begin
 			img_x <= img_x + 1;
 			img_y <= img_y;
@@ -1271,7 +1225,6 @@ end
 
 reg decode_valid_buf;
 reg [7:0] decode_jis8_code_buf;
-
 // TODO
 always @* begin
 	decode_valid_buf = state == WRITE && output_cnt < text_length;
@@ -1291,26 +1244,18 @@ always @* begin
 	        decode_jis8_code_buf[3:0] = correct_codewords[{(2+2), 3'b0}  +4  +:4];
 	        decode_jis8_code_buf[7:4] = correct_codewords[{(2+1), 3'b0} 	  +:4];
 	    end
-	    
-
 	    3:begin
 	        decode_jis8_code_buf[3:0] = correct_codewords[{(3+2), 3'b0}  +4  +:4];
 	        decode_jis8_code_buf[7:4] = correct_codewords[{(3+1), 3'b0} 	  +:4];
 	    end
-	    
-
 	    4:begin
 	        decode_jis8_code_buf[3:0] = correct_codewords[{(4+2), 3'b0}  +4  +:4];
 	        decode_jis8_code_buf[7:4] = correct_codewords[{(4+1), 3'b0} 	  +:4];
 	    end
-	    
-
 	    5:begin
 	        decode_jis8_code_buf[3:0] = correct_codewords[{(5+2), 3'b0}  +4  +:4];
 	        decode_jis8_code_buf[7:4] = correct_codewords[{(5+1), 3'b0} 	  +:4];
 	    end
-	    
-
 	    6:begin
 	        decode_jis8_code_buf[3:0] = correct_codewords[{(6+2), 3'b0}  +4  +:4];
 	        decode_jis8_code_buf[7:4] = correct_codewords[{(6+1), 3'b0} 	  +:4];
@@ -1393,38 +1338,7 @@ always @* begin
 	        decode_jis8_code_buf[3:0] = correct_codewords[{(19+2), 3'b0}  +4  +:4];
 	        decode_jis8_code_buf[7:4] = correct_codewords[{(19+1), 3'b0} 	  +:4];
 	    end
-	    
 
-	    20:begin
-	        decode_jis8_code_buf[3:0] = correct_codewords[{(20+2), 3'b0}  +4  +:4];
-	        decode_jis8_code_buf[7:4] = correct_codewords[{(20+1), 3'b0} 	  +:4];
-	    end
-	    
-
-	    21:begin
-	        decode_jis8_code_buf[3:0] = correct_codewords[{(21+2), 3'b0}  +4  +:4];
-	        decode_jis8_code_buf[7:4] = correct_codewords[{(21+1), 3'b0} 	  +:4];
-	    end
-	    
-
-	    22:begin
-	        decode_jis8_code_buf[3:0] = correct_codewords[{(22+2), 3'b0}  +4  +:4];
-	        decode_jis8_code_buf[7:4] = correct_codewords[{(22+1), 3'b0} 	  +:4];
-	    end
-	    
-
-	    23:begin
-	        decode_jis8_code_buf[3:0] = correct_codewords[{(23+2), 3'b0}  +4  +:4];
-	        decode_jis8_code_buf[7:4] = correct_codewords[{(23+1), 3'b0} 	  +:4];
-	    end
-	    24:begin
-	        decode_jis8_code_buf[3:0] = correct_codewords[{(24+2), 3'b0}  +4  +:4];
-	        decode_jis8_code_buf[7:4] = correct_codewords[{(24+1), 3'b0} 	  +:4];
-	    end
-	    25:begin
-	        decode_jis8_code_buf[3:0] = correct_codewords[{(25+2), 3'b0}  +4  +:4];
-	        decode_jis8_code_buf[7:4] = correct_codewords[{(25+1), 3'b0} 	  +:4];
-	    end
     endcase
 end
 
@@ -1482,6 +1396,7 @@ always @(posedge clk) begin
 	end
 end
 reg [8:0] temp_exp;
+reg [2:0] decoding_state;
 
 
 always @(posedge clk) begin
@@ -1504,95 +1419,105 @@ always @(posedge clk) begin
 		S1 <= 0;
 		S2 <= 0;
 		S3 <= 0;
+		findfirstai0 <= 0;
+		findfirstai1 <= 0;
 	end
 	else if (state == DECODING)begin
 		for(i=0; i<26; i=i+1) begin
 			if (err_cnt == i+1)
 				alpha_array[i] <= i2a0_a;
 		end
-
-
-			
-		if (err_cnt < 26) begin
-			S0 <= S0_t;			
+		if (decoding_state == 0) begin
+			if (err_cnt < 26) begin
+				S0 <= S0_t;			
+			end
+			if ( 2 < err_cnt && err_cnt < 29) begin
+				S1 <= S1_t;
+				S2 <= S2_t;
+			end
+			if (30 <= err_cnt && err_cnt < 30+26) begin
+				S3 <= S3_t;			
+			end
+			if (err_cnt == 30)
+				S0_a <= i2a0_a; 
+			if (err_cnt == 31)
+				S1_a <= i2a0_a; 
+			if (err_cnt == 32)
+				S2_a <= i2a0_a; 
+			if (err_cnt == 57)
+				S3_a <= i2a0_a;
 		end
-		if ( 2 < err_cnt && err_cnt < 29) begin
-			S1 <= S1_t;
-			S2 <= S2_t;
-		end
-		if (30 <= err_cnt && err_cnt < 30+26) begin
-			S3 <= S3_t;			
-		end
-		if (err_cnt == 30)
-			S0_a <= i2a0_a; 
-		if (err_cnt == 31)
-			S1_a <= i2a0_a; 
-		if (err_cnt == 32)
-			S2_a <= i2a0_a; 
-		if (err_cnt == 57)
-			S3_a <= i2a0_a;
-		if (err_cnt == 59)
-			b3 <= b3_t;
-		if (err_cnt == 60) begin
-			b3_a <= b3_a_t;
-		end
-		if (err_cnt == 60)
-			c3 <= c3_t;
-		if (err_cnt == 61)
-			c3_a <= c3_a_t;
-		if (err_cnt == 61)
-			alpha1_a <= alpha1_a_t;
-		if (err_cnt == 63)
-			c4 <= c4_t;
-		if (err_cnt == 64)
-			c4_a <= c4_a_t;
-		if (err_cnt == 64)
-			alpha1 <= alpha1_t;
-		if (err_cnt == 65)
-			alpha2 <= alpha2_t;
-		if (err_cnt == 67) begin
-			ai1_a <= ai1_a_t;
-		 	ai2_a <= ai2_a_t;
-			findfirstai0 <= findfirstai0_t;
-			findfirstai1 <= findfirstai1_t;						
-		end
-		if (err_cnt == 69) begin
-			ai1 <= ai1_t;
-			ai2 <= ai2_t;
-		end
-		if (err_cnt == 70) begin
-			ai1_s <= ai1_s_t; 
-			ai2_s <= ai2_s_t; 
-		end
-		if (findfirstai1) begin
-			if (err_cnt == 72) begin
+		else if (decoding_state == 1) begin
+			if (err_cnt == 59)
 				b3 <= b3_t;
-			end
-			if (err_cnt == 73)
+			if (err_cnt == 60) begin
 				b3_a <= b3_a_t;
-			if (err_cnt == 74) begin
-				c3_a_t <= c3_a;
-				Y2_a <= Y2_a_t;			
 			end
-			if (err_cnt == 75)
-				Y2 <= Y2_t;
-			if (err_cnt == 76)
+			if (err_cnt == 60)
+				c3 <= c3_t;
+			if (err_cnt == 61)
+				c3_a <= c3_a_t;
+			if (err_cnt == 61)
+				alpha1_a <= alpha1_a_t;
+			if (err_cnt == 63)
 				c4 <= c4_t;
-			if (err_cnt == 77)
-				Y1_a <= Y1_a_t;
-			if (err_cnt == 78) begin
-				offset1 <= offset1_t;
-				offset2 <= offset2_t;
+			if (err_cnt == 64)
+				c4_a <= c4_a_t;
+			if (err_cnt == 64)
+				alpha1 <= alpha1_t;
+			if (err_cnt == 65)
+				alpha2 <= alpha2_t;
+		end
+		else if (decoding_state == 2) begin
+			if (err_cnt == 67) begin
+				ai1_a <= ai1_a_t;
+			 	ai2_a <= ai2_a_t;
+				findfirstai0 <= findfirstai0_t;
+				findfirstai1 <= findfirstai1_t;						
 			end
 		end
 		else begin
-			if (err_cnt == 72)
-				offset1 <= offset1_t;
+			if (err_cnt == 69) begin
+				ai1 <= ai1_t;
+				ai2 <= ai2_t;
+			end
+			if (err_cnt == 70) begin
+				ai1_s <= ai1_s_t; 
+				ai2_s <= ai2_s_t; 
+			end	
+			if (findfirstai1) begin
+				if (err_cnt == 72) begin
+					b3 <= b3_t;
+				end
+				if (err_cnt == 72) begin
+					c3 <= c3_t;
+				end
+				if (err_cnt == 73)
+					b3_a <= b3_a_t;
+				if (err_cnt == 74) begin
+					c3_a <= c3_a_t;
+					Y2_a <= Y2_a_t;			
+				end
+				if (err_cnt == 75)
+					Y2 <= Y2_t;
+				if (err_cnt == 76)
+					c4 <= c4_t;
+				if (err_cnt == 77)
+					Y1_a <= Y1_a_t;
+				if (err_cnt == 78) begin
+					offset1 <= offset1_t;
+					offset2 <= offset2_t;
+				end
+			end
+			else begin
+				if (err_cnt == 72)
+					offset1 <= offset1_t;
+			end
 		end
+		
 	end
 end
 
-reg [2:0] decoding_state;
 
 always @* begin
 	decoding_state = 0;
@@ -1617,20 +1542,30 @@ always @* begin
 	alpha2_a_t = 0;
 	alpha1_t = 0;
 	alpha2_t = 0;
-	alpha1_t = 0;
 	ai1_a_t = 0;
 	ai2_a_t = 0;
 	findfirstai0_t = 0;
 	findfirstai1_t = 0;
-	a2i0_a = 0;
-	a2i1_a = 0;
-	i2a0_i = 0;
 	ai1_t = 0;
 	ai2_t = 0;
 	ai1_s_t = 0;
 	ai2_s_t = 0;
+	b3_t = 0;
+	b3_a_t = 0;
+	c3_t = 0;
+	c3_a_t = 0;
+	c4_t = 0;
+	c4_a_t = 0;
+	Y1_a_t = 0;
+	offset1_t = 0;
+	offset2_t = 0;
+	Y2_a_t = 0;
+	Y2_t = 0;
+	a2i0_a = 0;
+	a2i1_a = 0;
+	i2a0_i = 0;
 
-	case (decoding_state)
+	case (decoding_state) // synopsys full_case parallel_case
 		0: begin
 			//  compute alpha_array
 			for (i=0; i<26; i=i+1)
@@ -1781,7 +1716,7 @@ always @* begin
 			ai1_t = a2i0_i;
 			ai2_t = a2i1_i;
 			// t = 69
-			if (err_cnt == 68) begin
+			if (err_cnt == 69) begin
 				a2i0_a = {ai1_a, 1'b0};
 				a2i1_a = {ai2_a, 1'b0};
 			end
@@ -1817,11 +1752,11 @@ always @* begin
 				b3_a_t = i2a0_a; // t=73
 				c3_t = c1 ^ a2i1_i; // t = 72
 				if (err_cnt == 73) begin
-					i2a0_i = c3_t;
+					i2a0_i = c3;
+
 				end
 				c3_a_t = i2a0_a; // t = 74
 				Y2_a_t = (c3_a_t + 255 - b3_a) >= 255? c3_a_t + 255 - b3_a - 255:(c3_a_t + 255 - b3_a);
-				
 				if (err_cnt == 74) begin
 					i2a0_i = c3_t;
 					a2i0_a = Y2_a_t;
@@ -1846,9 +1781,9 @@ always @* begin
 				
 			end	
 			else begin
-				Y1_a = (S0_a + (255 - ai1_a)) >= 255? (S0_a - ai1_a) : (S0_a + (255 - ai1_a));
+				Y1_a_t = (S0_a + (255 - ai1_a)) >= 255? (S0_a - ai1_a) : (S0_a + (255 - ai1_a));
 				if (err_cnt == 71) begin
-					a2i0_a = (Y1_a + ai1_a)>=255 ? (Y1_a + ai1_a)-255:(Y1_a + ai1_a);
+					a2i0_a = (Y1_a_t + ai1_a)>=255 ? (Y1_a_t + ai1_a)-255:(Y1_a_t + ai1_a);
 				end
 				offset1_t = a2i0_i;
 				offset2_t = 0;
@@ -1869,11 +1804,69 @@ always @* begin
 	end
 	correct_codewords[215:208] = 0;
 	if (findfirstai0) begin
-		correct_codewords[error_position0*8+:8] = codewords[error_position0*8+:8] ^ offset1;
+		case(error_position0)
+			0: correct_codewords[0*8+:8] = codewords[0*8+:8] ^ offset1; 
+			1: correct_codewords[1*8+:8] = codewords[1*8+:8] ^ offset1; 
+			2: correct_codewords[2*8+:8] = codewords[2*8+:8] ^ offset1;
+			3: correct_codewords[3*8+:8] = codewords[3*8+:8] ^ offset1;
+			4: correct_codewords[4*8+:8] = codewords[4*8+:8] ^ offset1;
+			5: correct_codewords[5*8+:8] = codewords[5*8+:8] ^ offset1;
+			6: correct_codewords[6*8+:8] = codewords[6*8+:8] ^ offset1;
+			7: correct_codewords[7*8+:8] = codewords[7*8+:8] ^ offset1;
+			8: correct_codewords[8*8+:8] = codewords[8*8+:8] ^ offset1;
+			9: correct_codewords[9*8+:8] = codewords[9*8+:8] ^ offset1;
+			10: correct_codewords[10*8+:8] = codewords[10*8+:8] ^ offset1;
+			11: correct_codewords[11*8+:8] = codewords[11*8+:8] ^ offset1;
+			12: correct_codewords[12*8+:8] = codewords[12*8+:8] ^ offset1;
+			13: correct_codewords[13*8+:8] = codewords[13*8+:8] ^ offset1;
+			14: correct_codewords[14*8+:8] = codewords[14*8+:8] ^ offset1;
+			15: correct_codewords[15*8+:8] = codewords[15*8+:8] ^ offset1;
+			16: correct_codewords[16*8+:8] = codewords[16*8+:8] ^ offset1;
+			17: correct_codewords[17*8+:8] = codewords[17*8+:8] ^ offset1;
+			18: correct_codewords[18*8+:8] = codewords[18*8+:8] ^ offset1;
+			19: correct_codewords[19*8+:8] = codewords[19*8+:8] ^ offset1;
+			20: correct_codewords[20*8+:8] = codewords[20*8+:8] ^ offset1;
+			21: correct_codewords[21*8+:8] = codewords[21*8+:8] ^ offset1;
+			22: correct_codewords[22*8+:8] = codewords[22*8+:8] ^ offset1;
+			23: correct_codewords[23*8+:8] = codewords[23*8+:8] ^ offset1;
+			24: correct_codewords[24*8+:8] = codewords[24*8+:8] ^ offset1;
+			25: correct_codewords[25*8+:8] = codewords[25*8+:8] ^ offset1;
+		endcase
 	end
-	if (findfirstai1) begin
-		correct_codewords[error_position1*8+:8] = codewords[error_position1*8+:8] ^ offset2;
-	end
+	// if (findfirstai1) begin
+	// correct_codewords[error_position1*8+:8] = codewords[error_position1*8+:8] ^ offset2;
+	// end
+
+
+	case(error_position1)
+		0: correct_codewords[0*8+:8] = codewords[0*8+:8] ^ offset2; 
+		1: correct_codewords[1*8+:8] = codewords[1*8+:8] ^ offset2; 
+		2: correct_codewords[2*8+:8] = codewords[2*8+:8] ^ offset2;
+		3: correct_codewords[3*8+:8] = codewords[3*8+:8] ^ offset2;
+		4: correct_codewords[4*8+:8] = codewords[4*8+:8] ^ offset2;
+		5: correct_codewords[5*8+:8] = codewords[5*8+:8] ^ offset2;
+		6: correct_codewords[6*8+:8] = codewords[6*8+:8] ^ offset2;
+		7: correct_codewords[7*8+:8] = codewords[7*8+:8] ^ offset2;
+		8: correct_codewords[8*8+:8] = codewords[8*8+:8] ^ offset2;
+		9: correct_codewords[9*8+:8] = codewords[9*8+:8] ^ offset2;
+		10: correct_codewords[10*8+:8] = codewords[10*8+:8] ^ offset2;
+		11: correct_codewords[11*8+:8] = codewords[11*8+:8] ^ offset2;
+		12: correct_codewords[12*8+:8] = codewords[12*8+:8] ^ offset2;
+		13: correct_codewords[13*8+:8] = codewords[13*8+:8] ^ offset2;
+		14: correct_codewords[14*8+:8] = codewords[14*8+:8] ^ offset2;
+		15: correct_codewords[15*8+:8] = codewords[15*8+:8] ^ offset2;
+		16: correct_codewords[16*8+:8] = codewords[16*8+:8] ^ offset2;
+		17: correct_codewords[17*8+:8] = codewords[17*8+:8] ^ offset2;
+		18: correct_codewords[18*8+:8] = codewords[18*8+:8] ^ offset2;
+		19: correct_codewords[19*8+:8] = codewords[19*8+:8] ^ offset2;
+		20: correct_codewords[20*8+:8] = codewords[20*8+:8] ^ offset2;
+		21: correct_codewords[21*8+:8] = codewords[21*8+:8] ^ offset2;
+		22: correct_codewords[22*8+:8] = codewords[22*8+:8] ^ offset2;
+		23: correct_codewords[23*8+:8] = codewords[23*8+:8] ^ offset2;
+		24: correct_codewords[24*8+:8] = codewords[24*8+:8] ^ offset2;
+		25: correct_codewords[25*8+:8] = codewords[25*8+:8] ^ offset2;
+	endcase
+
 end
 
 assign x_s_array[0] = 1;
