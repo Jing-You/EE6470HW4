@@ -1,0 +1,22 @@
+-1 "DetectTopDesignUnits" 2
+"RULEGROUP"
+["Design Read"]
+"BUILTIN"
+"1"
+-1 "ElabSummary" 2
+"RULEGROUP"
+["Design Read"]
+"BUILTIN"
+"1"
+-1 "LINT_abstract01" 3
+"TEMPLATE"
+["lint/lint_abstract"]
+"RULE_ORDER"
+[1]
+"RULEGROUP"
+["lint/Miscellaneous"]
+-1 "SYNTH_5166" 2
+"RULEGROUP"
+["Design Read"]
+"BUILTIN"
+"1"

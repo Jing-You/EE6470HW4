@@ -1,4 +1,3 @@
-// TODO 旋轉 cnt 重複使用
 module qr_decode(
 input clk,                           //clock input
 input srstn,                         //synchronous reset (active low)

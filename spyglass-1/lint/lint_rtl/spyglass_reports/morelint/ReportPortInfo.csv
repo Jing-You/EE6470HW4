@@ -1,0 +1,9 @@
+Module Name,Module Type,Port Name,Direction,Width,Index,Comment Source,Comment 
+qr_decode,Top_Level,clk,INPUT,1,-,module port,clock input
+qr_decode,Top_Level,srstn,INPUT,1,-,module port,synchronous reset (active low)
+qr_decode,Top_Level,qr_decode_start,INPUT,1,-,module port,start decoding for one QR code
+qr_decode,Top_Level,sram_rdata,INPUT,1,-,module port,read data from SRAM
+qr_decode,Top_Level,sram_raddr,OUTPUT,12,[11:0],module port,read address to SRAM
+qr_decode,Top_Level,decode_valid,OUTPUT,1,-,module port,decoded code is valid
+qr_decode,Top_Level,decode_jis8_code,OUTPUT,8,[7:0],module port,decoded JIS8 code
+qr_decode,Top_Level,qr_decode_finish,OUTPUT,1,-,module port,1: decoding one QR code is finis...

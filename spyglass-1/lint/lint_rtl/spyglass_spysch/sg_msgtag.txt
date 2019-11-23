@@ -1,0 +1,111 @@
+4 "W116" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+5 "W116" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+6 "W116" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+7 "W116" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+8 "W116" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+9 "W116" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+10 "W116" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+11 "W116" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+12 "W116" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+13 "W116" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+14 "W116" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+15 "W116" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+28 "W415a" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+29 "W415a" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+30 "W415a" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+31 "W415a" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+32 "W415a" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+33 "W415a" 1
+"SPG_MSGTAG_HIERARCHY"
+":qr_decode"
+-1 "DetectTopDesignUnits" 2
+"RULEGROUP"
+["Design Read"]
+"BUILTIN"
+"1"
+-1 "ElabSummary" 2
+"RULEGROUP"
+["Design Read"]
+"BUILTIN"
+"1"
+-1 "RegInputOutput-ML" 3
+"TEMPLATE"
+["lint/lint_rtl"]
+"RULE_ORDER"
+[63]
+"RULEGROUP"
+["morelint"]
+-1 "ReportPortInfo-ML" 3
+"TEMPLATE"
+["lint/lint_rtl"]
+"RULE_ORDER"
+[42]
+"RULEGROUP"
+["morelint"]
+-1 "STARC05-2.11.3.1" 3
+"TEMPLATE"
+["lint/lint_rtl"]
+"RULE_ORDER"
+[19]
+"RULEGROUP"
+["starc2005/s05_Construct/s05_Construct2","starc2005/RTL_Description_Technique_05"]
+-1 "SYNTH_5166" 2
+"RULEGROUP"
+["Design Read"]
+"BUILTIN"
+"1"
+-1 "W116" 3
+"TEMPLATE"
+["lint/lint_rtl"]
+"RULE_ORDER"
+[48]
+"RULEGROUP"
+["lint/Lint_Elab_Rules","lint/Expression"]
+-1 "W415a" 3
+"TEMPLATE"
+["lint/lint_rtl"]
+"RULE_ORDER"
+[91]
+"RULEGROUP"
+["lint/MultipleDriver"]
+-1 "W528" 3
+"TEMPLATE"
+["lint/lint_rtl"]
+"RULE_ORDER"
+[95]
+"RULEGROUP"
+["lint/Lint_Elab_Rules","lint/Usage"]
