@@ -19,7 +19,6 @@ parameter topleft = 0, bottomright = 1;
 parameter MAIND = 0, OFFD= 1 , TOP= 2, LEFT = 3, TOP2 = 4, CHKR=5,CHKB=6, SEARCH_FINISH=7; 
 reg qr_img_temp[QR_LEN-1:0][QR_LEN-1:0];
 reg qr_img[QR_LEN-1:0][QR_LEN-1:0];
-reg read_buffer[QR_LEN*QR_LEN:0];
 wire corner[6:0][6:0];
 
 reg [6:0] top_most_y, left_most_x;
@@ -31,9 +30,10 @@ reg corner_detect0;
 reg corner_detect1;
 reg corner_detect2;
 reg corner_detect3;
+reg [7:0] err_cnt;
 reg [7:0] output_cnt;
 reg [7:0] text_length;
-reg error_occur;
+
 reg searched_position;
 assign corner[0][0] = 1;
 assign corner[0][1] = 1;
@@ -84,7 +84,7 @@ assign corner[6][3] = 1;
 assign corner[6][4] = 1;
 assign corner[6][5] = 1;
 assign corner[6][6] = 1;
-
+reg findfirstai0, findfirstai1, findfirstai0_t, findfirstai1_t;
 reg [3:0] state;
 reg [20:0] start_point_x;
 reg [20:0] start_point_y;
@@ -98,21 +98,49 @@ reg [207:0]codewords;
 reg [207+8:0]correct_codewords;
 reg [1:0]rotate_cnt;
 
-wire [7:0] a2i [255:0];
-wire [7:0] i2a [255:0];
-
-reg [8:0]S0;
-reg [8:0]S1;
-reg [8:0]S2;
+reg [8:0]S0, S0_t;
+reg [8:0]S1, S1_t;
+reg [8:0]S2, S2_t;
 reg [8:0]S3;
 reg [8:0]S4;
 reg [8:0]S5;
+wire error_occur = S0 != 0 || S1 != 0 || S2 != 0 || S3 != 0;
 
 reg [7:0] codeword [25:0];
 reg [8:0] alpha_array[25:0];
 reg [8:0] Y1, Y2, Y1_a, Y2_a;
 reg [2:0] search_state;
 reg [9:0] search_cnt;
+
+wire [7:0] a2i0_i, a2i1_i, a2i2_i, a2i3_i;
+wire [7:0] i2a0_a, i2a1_a;
+reg [7:0] a2i0_a, a2i1_a, a2i2_a, a2i3_a;
+reg [7:0] i2a0_i, i2a1_i;
+
+
+a2i a2i0(
+	.clk(clk),
+	.a(a2i0_a),
+	.i(a2i0_i)
+);
+
+a2i a2i1(
+	.clk(clk),
+	.a(a2i1_a),
+	.i(a2i1_i)
+);
+
+i2a i2a0(
+	.clk(clk),
+	.i(i2a0_i),
+	.a(i2a0_a)
+);
+
+
+
+
+
+
 
 always @(posedge clk) begin
 	if (!srstn) begin
@@ -158,7 +186,19 @@ always @(posedge clk) begin
 		state <= DECODING;
 	end
 	else if (state == DECODING) begin
-		state <= WRITE;
+		if (err_cnt>= 58 && !error_occur)begin
+			state <= WRITE;
+		end
+		else if (findfirstai1 && findfirstai0 && err_cnt == 78) begin	
+			state <= WRITE;
+		end
+		else if (!findfirstai1 && err_cnt == 73) begin
+			// $display("cond2");
+			state <= WRITE;
+		end 
+		else
+			state <= DECODING;
+
 	end
 	else if (state == WRITE) begin
 		if (output_cnt == 0) begin
@@ -613,7 +653,6 @@ always @* begin
 			end
 		end
 	end
-
 
 	for (r0 = 0; r0<3; r0=r0+1) begin
 		for(c0=0; c0<3; c0=c0+1) begin
@@ -1237,32 +1276,40 @@ always @* begin
 	text_length[0] = codewords[12];
 end
 
+reg decode_valid_buf;
+reg [7:0] decode_jis8_code_buf;
+
+// TODO
 always @* begin
-	decode_valid = state == WRITE && output_cnt < text_length;
-	// decode_jis8_code[3:0] = correct_codewords[(output_cnt+2) * 8  +4  +:4];
-	decode_jis8_code[3:0] = correct_codewords[{(output_cnt+2), 3'b0}  +4  +:4];
-	// decode_jis8_code[7:4] = correct_codewords[(output_cnt+1) * 8	  +:4];
-	decode_jis8_code[7:4] = correct_codewords[{(output_cnt+1), 3'b0} 	  +:4];
+	decode_valid_buf = state == WRITE && output_cnt < text_length;
+	decode_jis8_code_buf[3:0] = correct_codewords[{(output_cnt+2), 3'b0}  +4  +:4];
+	decode_jis8_code_buf[7:4] = correct_codewords[{(output_cnt+1), 3'b0} 	  +:4];
 end
 
-always @* begin
-	for(i=0; i<26; i=i+1) begin
-		codeword[i] = codewords[i*8+:8];
-	end
+always @(posedge clk) begin
+	decode_valid <= decode_valid_buf;
+	decode_jis8_code <= decode_jis8_code_buf;
 end
+
 
 reg [8:0] sdiff_a;
 reg [8:0] alpha1, alpha2;
+reg [8:0] alpha1_t, alpha2_t;
 reg [8:0] alpha1_a, alpha2_a;
+reg [8:0] alpha1_a_t, alpha2_a_t;
 reg [8:0] S0_a, S1_a, S2_a, S3_a, S4_a, S5_a;
+reg [8:0] S3_t;
+reg [8:0] S0_a_t, S1_a_t, S2_a_t, S3_a_t;
 reg [8:0] S6, S7, S6_a, S7_a, S8, S8_a;
 reg [8:0] S9, S9_a;
 reg [8:0] S10, S10_a;
 reg [8:0] ai1, ai2;
 reg [8:0] ai1_a, ai2_a;
-reg findfirstai0, findfirstai1;
 reg [8:0] temp_sum;
 reg [8:0] a1, a2, b1, b2, c3, c4;
+reg [8:0] b3_t, b3_a_t;
+reg [8:0] c3_t, c4_t;
+reg [8:0] c3_a_t, c4_a_t;
 reg [8:0] c1, c2, c1_a, c2_a;
 reg [8:0] b3, b3_a;
 reg [8:0] a1_a, a2_a, b1_a, b2_a, c3_a, c4_a;
@@ -1272,8 +1319,15 @@ reg [8:0] diff_a;
 reg [8:0] unknown_x, unknown_y;
 reg [8:0] unknown_x_a, unknown_y_a;
 reg [7:0] offset1, offset2;
-reg [8:0]correcting_cnt;
-
+reg [8:0] correcting_cnt;
+reg [8:0] alpha1x;
+wire [7:0] x_s_array[25:0];
+reg [8:0]  ai1_a_t, ai2_a_t;
+reg [8:0] ai1_t, ai2_t;
+reg [8:0] ai1_s_t, ai2_s_t;
+reg [8:0] Y1_a_t, Y2_a_t;
+reg [8:0] Y1_t, Y2_t;
+reg [7:0] offset2_t, offset1_t;
 always @(posedge clk) begin
 	if (!srstn) begin
 		correcting_cnt <= 0;
@@ -1286,131 +1340,361 @@ always @(posedge clk) begin
 	end
 end
 reg [8:0] temp_exp;
-always @* begin
-	S0 = 0;
-	S1 = 0;
-	S2 = 0;
-	S3 = 0;
-	findfirstai0 = 0;
-	findfirstai1 = 0;
 
-	for (i=0; i<26; i=i+1) begin
-		alpha_array[i] = i2a[codewords[i*8 +:8]];
+
+always @(posedge clk) begin
+	if(!srstn) begin
+		err_cnt <= 0;		
 	end
-
-	for (i=0; i<26; i=i+1) begin
-		S0 = S0 ^ codewords[i*8 +:8];
-	end
-
-	S0_a = i2a[S0];
-	for (i=0; i<26; i=i+1) begin
-		S1 = S1 ^ a2i[(alpha_array[i] + 25-i) >= 255    ?(alpha_array[i] + 25-i) - 255: (alpha_array[i] + 25-i)];
-	end
-	S1_a = i2a[S1];
-	for (i=0; i<26; i=i+1)
-		S2 = S2 ^ a2i[(alpha_array[i] + (25-i)*2) >=255 ? (alpha_array[i] + (25-i)*2) - 255 : (alpha_array[i] + (25-i)*2	)];
-
-	for (i=0; i<26; i=i+1)
-		S3 = S3 ^ a2i[(alpha_array[i] + (25-i)*3) >=255 ? (alpha_array[i] + (25-i)*3) - 255 :(alpha_array[i] + (25-i)*3	)];
-
-	error_occur = S0 != 0 || S1 != 0 || S2 != 0 || S3 != 0;
-
-	if (S0_a > S1_a) begin
-	    a1 = S0;
-	    b1 = S1;
-	    c1 = S2;
-	    a2 = S1;
-	    b2 = S2;
-	    c2 = S3;
-	end
+	else if (state == DECODING)
+		err_cnt <= err_cnt + 1;
 	else begin
-	    a2 = S0;
-	    b2 = S1;
-	    c2 = S2;
-	    a1 = S1;
-	    b1 = S2;
-	    c1 = S3;
-	end
-	a1_a = i2a[a1];
-	a2_a = i2a[a2];
-	b1_a = i2a[b1];
-	diff_a = a1_a - a2_a;
-	b2_a = i2a[b2];
-	b3 = b1 ^ a2i[(b2_a + diff_a) >= 255 ? (b2_a + diff_a) - 255 : (b2_a + diff_a)];
-	b3_a = i2a[b3];
-	c2_a = i2a[c2];
-	c3 = c1 ^ a2i[(c2_a + diff_a) >= 255 ? (c2_a + diff_a) - 255 : (c2_a + diff_a) ];
-	c3_a = i2a[c3];
-	unknown_y_a = (c3_a + 255 - b3_a) >= 255 ?(c3_a + 255 - b3_a) - 255:(c3_a + 255 - b3_a);
-	unknown_y = a2i[unknown_y_a];
-	c4 = a2i[(b1_a + unknown_y_a) >= 255 ? (b1_a + unknown_y_a) - 255 : (b1_a + unknown_y_a)] ^ c1;
-	c4_a = i2a[c4];
-	unknown_x_a = (c4_a + 255 - a1_a) >= 255 ? (c4_a + 255 - a1_a) - 255: (c4_a + 255 - a1_a);
-	unknown_x = a2i[unknown_x_a];
-
-	alpha1 = unknown_y;
-	alpha2 = unknown_x;
-	alpha1_a = i2a[alpha1];
-
-	ai1_a = 27;
-	ai2_a = 27;
-
-	for (i=0; i<26; i = i+1) begin
-		temp_sum = alpha2 ^ a2i[(alpha1_a + i) >= 255 ? (alpha1_a + i) - 255 :(alpha1_a + i)] ^ a2i[2 * i];
-		if (!findfirstai0 && temp_sum == 0 && error_occur) begin
-			ai1_a = i;
-			findfirstai0 = 1;
-		end
-		else if (findfirstai0 && temp_sum == 0 && error_occur && !findfirstai1) begin
-			ai2_a = i;
-			findfirstai1 = 1;				
-		end
-	end
-	// ***********************
-	ai1 = a2i[ai1_a];
-	ai2 = a2i[ai2_a];
-	ai1_s = a2i[ai1_a*2];
-	ai2_s = a2i[ai2_a*2];
-	// **********************
-	if (findfirstai1) begin
-	    a1 = ai1_s;
-	    b1 = ai2_s;
-	    c1 = S1;
-	    a2 = ai1;
-	    b2 = ai2;
-	    c2 = S0;
-		a1_a = i2a[a1];
-		a2_a = i2a[a2];
-		b1_a = i2a[b1];
-		diff_a = a1_a - a2_a;
-		b2_a = i2a[b2];
-		b3 = b1 ^ a2i[(b2_a + diff_a) >= 255?(b2_a + diff_a) - 255:(b2_a + diff_a) ];
-		b3_a = i2a[b3];
-		c2_a = i2a[c2];
-		c3 = c1 ^ a2i[(c2_a + diff_a) >= 255?(c2_a + diff_a) -255:(c2_a + diff_a)];
-		c3_a = i2a[c3];
-		unknown_y_a = (c3_a + 255 - b3_a) >= 255? c3_a + 255 - b3_a - 255:(c3_a + 255 - b3_a);
-		unknown_y = a2i[unknown_y_a];
-		c4 = a2i[(b1_a + unknown_y_a) >= 255 ? b1_a + unknown_y_a - 255 : (b1_a + unknown_y_a)] ^ c1;
-		c4_a = i2a[c4];
-		unknown_x_a = (c4_a + 255 - a1_a) >= 255 ? (c4_a - a1_a): (c4_a + 255 - a1_a);
-		unknown_x = a2i[unknown_x_a];
-		Y2 = unknown_y;
-		Y1 = unknown_x;
-		Y2_a = i2a[Y2];
-		Y1_a = i2a[Y1];
-		offset1 = a2i[(Y1_a + ai1_a)>= 255 ? Y1_a + ai1_a - 255: (Y1_a + ai1_a)];
-		offset2 = a2i[(Y2_a + ai2_a)>=255?(Y2_a + ai2_a)-255:(Y2_a + ai2_a)];
-	end else begin
-		c3_a = ai1_a;
-		b3 = S0;
-		b3_a = i2a[b3];
-		unknown_y_a = (b3_a + (255 - c3_a)) >= 255? (b3_a - c3_a) : (b3_a + (255 - c3_a));
-		Y1_a = unknown_y_a;
-		offset1 = a2i[(Y1_a + ai1_a)>=255 ? (Y1_a + ai1_a)-255:(Y1_a + ai1_a)];
-		offset2 = 0;
+		err_cnt <= err_cnt;
 	end
 end
+// S_FF
+always @(posedge clk) begin
+	if (!srstn) begin
+		// reset
+		for(i=0; i<26; i=i+1)
+			alpha_array[i] <= 0;
+		S0 <= 0;
+		S1 <= 0;
+		S2 <= 0;
+		S3 <= 0;
+	end
+	else if (state == DECODING)begin
+		for(i=0; i<26; i=i+1) begin
+			if (err_cnt == i+1)
+				alpha_array[i] <= i2a0_a;
+		end
+
+
+			
+		if (err_cnt < 26) begin
+			S0 <= S0_t;			
+		end
+		if ( 2 < err_cnt && err_cnt < 29) begin
+			S1 <= S1_t;
+			S2 <= S2_t;
+		end
+		if (30 <= err_cnt && err_cnt < 30+26) begin
+			S3 <= S3_t;			
+		end
+		if (err_cnt == 30)
+			S0_a <= i2a0_a; 
+		if (err_cnt == 31)
+			S1_a <= i2a0_a; 
+		if (err_cnt == 32)
+			S2_a <= i2a0_a; 
+		if (err_cnt == 57)
+			S3_a <= i2a0_a;
+		if (err_cnt == 59)
+			b3 <= b3_t;
+		if (err_cnt == 60) begin
+			b3_a <= b3_a_t;
+		end
+		if (err_cnt == 60)
+			c3 <= c3_t;
+		if (err_cnt == 61)
+			c3_a <= c3_a_t;
+		if (err_cnt == 61)
+			alpha1_a <= alpha1_a_t;
+		if (err_cnt == 63)
+			c4 <= c4_t;
+		if (err_cnt == 64)
+			c4_a <= c4_a_t;
+		if (err_cnt == 64)
+			alpha1 <= alpha1_t;
+		if (err_cnt == 65)
+			alpha2 <= alpha2_t;
+		if (err_cnt == 67) begin
+			ai1_a <= ai1_a_t;
+		 	ai2_a <= ai2_a_t;
+			findfirstai0 <= findfirstai0_t;
+			findfirstai1 <= findfirstai1_t;						
+		end
+		if (err_cnt == 69) begin
+			ai1 <= ai1_t;
+			ai2 <= ai2_t;
+		end
+		if (err_cnt == 70) begin
+			ai1_s <= ai1_s_t; 
+			ai2_s <= ai2_s_t; 
+		end
+		if (findfirstai1) begin
+			if (err_cnt == 72) begin
+				b3 <= b3_t;
+			end
+			if (err_cnt == 73)
+				b3_a <= b3_a_t;
+			if (err_cnt == 74) begin
+				c3_a_t <= c3_a;
+				Y2_a <= Y2_a_t;			
+			end
+			if (err_cnt == 75)
+				Y2 <= Y2_t;
+			if (err_cnt == 76)
+				c4 <= c4_t;
+			if (err_cnt == 77)
+				Y1_a <= Y1_a_t;
+			if (err_cnt == 78) begin
+				offset1 <= offset1_t;
+				offset2 <= offset2_t;
+			end
+		end
+		else begin
+			if (err_cnt == 72)
+				offset1 <= offset1_t;
+		end
+	end
+end
+
+reg [2:0] decoding_state;
+
+always @* begin
+	decoding_state = 0;
+	if (err_cnt < 58)
+		decoding_state = 0;
+	else if (err_cnt >= 58 && err_cnt < 66)
+		decoding_state = 1;
+	else if (err_cnt >= 66 && err_cnt <68)
+		decoding_state = 2;
+	else if (err_cnt >= 68 )
+		decoding_state = 3;
+
+end
+
+// TODO 優化alpha_array selection
+always @* begin
+	case (decoding_state)
+		0: begin
+			//  compute alpha_array
+			for (i=0; i<26; i=i+1)
+				if (err_cnt == i)
+		        	i2a0_i = codewords[i*8 +:8];
+
+			if ( err_cnt < 26)
+				S0_t = S0 ^ codewords[(err_cnt)*8 +:8];
+
+			for (i=0; i<26; i=i+1) begin
+				if (err_cnt==i+2) 
+					a2i0_a = (alpha_array[i] + (25-i)*1) >= 255 ?(alpha_array[i] + (25-i)*1) - 255: (alpha_array[i] + (25-i)*1);
+				if (err_cnt==i+2) 
+					a2i1_a = (alpha_array[i] + (25-i)*2) >= 255 ?(alpha_array[i] + (25-i)*2) - 255: (alpha_array[i] + (25-i)*2);
+				if (err_cnt==i+3) begin
+					S1_t = S1 ^ a2i0_i;
+					S2_t = S2 ^ a2i1_i;
+				end
+			end
+			if ( 2 < err_cnt && err_cnt < 29) begin
+					S1_t = S1 ^ a2i0_i;
+					S2_t = S2 ^ a2i1_i;
+			end
+
+			for (i=0; i<26; i=i+1) begin
+				if (err_cnt==i+3+26) 
+					a2i1_a = (alpha_array[i] + (25-i)*3) >= 255 ?(alpha_array[i] + (25-i)*3) - 255: (alpha_array[i] + (25-i)*3);
+				if (err_cnt==i+3+26+1) 
+					S3_t = S3 ^ a2i1_i;
+			end
+
+
+			// compute S0_a_t
+		    if (err_cnt==29)
+		    	i2a0_i = S0;
+			// compute S1_a_t
+		    if (err_cnt==30)
+		    	i2a0_i = S1;
+			// compute S2_a_t
+		    if (err_cnt==31)
+		    	i2a0_i = S2;
+			// compute S3_a_t
+			if (err_cnt == 56)
+				i2a0_i = S3; 
+
+		end
+		1: begin
+			if (S0_a > S1_a) begin
+			    a1 = S0;
+			    b1 = S1;
+			    c1 = S2;
+			    a2 = S1;
+			    b2 = S2;
+			    c2 = S3;
+			    a1_a = S0_a;
+			    b1_a = S1_a;
+			    c1_a = S2_a;
+			    a2_a = S1_a;
+			    b2_a = S2_a;
+			    c2_a = S3_a;
+			end
+			else begin
+			    a2 = S0;
+			    b2 = S1;
+			    c2 = S2;
+			    a1 = S1;
+			    b1 = S2;
+			    c1 = S3;
+			    a1_a = S1_a;
+			    b1_a = S2_a;
+			    c1_a = S3_a;
+			    a2_a = S0_a;
+			    b2_a = S1_a;
+			    c2_a = S2_a;
+			end
+			diff_a = a1_a - a2_a;
+
+			if (err_cnt == 58) begin
+				a2i0_a = (b2_a + diff_a) >= 255 ? (b2_a + diff_a) - 255 : (b2_a + diff_a);
+			end
+
+			b3_t = b1 ^ a2i0_i; // t = 59
+			if (err_cnt == 59) begin
+				i2a0_i = b3_t;		
+			end
+			b3_a_t = i2a0_a; // t = 60
+			if (err_cnt == 59) begin
+				a2i1_a = (c2_a + diff_a) >= 255 ? (c2_a + diff_a) - 255 : (c2_a + diff_a);
+			end
+			c3_t = c1 ^ a2i1_i; // t = 60
+			if (err_cnt == 60) begin
+				i2a0_i = c3_t;
+			end
+			c3_a_t = i2a0_a; // t = 61
+
+			// t = 61
+			alpha1_a_t = (c3_a_t + 255 - b3_a) >= 255 ?(c3_a_t + 255 - b3_a) - 255:(c3_a_t + 255 - b3_a);
+			// t = 62
+			if (err_cnt== 62) begin
+				a2i0_a = (b1_a + alpha1_a) >= 255 ? (b1_a + alpha1_a) - 255 : (b1_a + alpha1_a);
+			end
+			// t = 63
+			c4_t = a2i0_i ^ c1;
+
+			// t = 63
+			if (err_cnt == 63) begin
+				i2a0_i = c4_t;
+				a2i0_a = alpha1_a;
+			end
+			// t = 64
+			alpha1_t = a2i0_i;
+			// t = 64
+			c4_a_t = i2a0_a;
+			// t = 64
+			if (err_cnt == 64) begin
+				a2i1_a = (c4_a_t + 255 - a1_a) >= 255 ? (c4_a_t + 255 - a1_a) - 255: (c4_a_t + 255 - a1_a);
+			end
+			alpha2_t = a2i1_i;
+			end
+		2: begin
+			ai1_a_t = 27;
+			ai2_a_t = 27;
+			alpha1x = alpha1;
+			findfirstai0_t = 0;
+			findfirstai1_t = 0;
+			for (i=0; i<26; i = i+1) begin
+				temp_sum = alpha2 ^ alpha1x ^ x_s_array[i];
+				if (!findfirstai0_t && temp_sum == 0 && error_occur) begin
+					ai1_a_t = i;
+					findfirstai0_t = 1;
+				end
+				else if (findfirstai0_t && temp_sum == 0 && error_occur && !findfirstai1_t) begin
+					ai2_a_t = i;
+					findfirstai1_t = 1;				
+				end
+				alpha1x = {alpha1x, 1'b0};
+				alpha1x = alpha1x > 255 ? alpha1x ^ 285 : alpha1x;
+			end
+		end
+		3: begin
+			// ***********************
+			// t = 68
+			if (err_cnt == 68) begin
+				a2i0_a = ai1_a;
+				a2i1_a = ai2_a;
+			end
+			// t = 69
+			ai1_t = a2i0_i;
+			ai2_t = a2i1_i;
+			// t = 69
+			if (err_cnt == 68) begin
+				a2i0_a = {ai1_a, 1'b0};
+				a2i1_a = {ai2_a, 1'b0};
+			end
+			// t = 70
+			ai1_s_t = a2i0_i;
+			ai2_s_t = a2i1_i;
+			// **********************
+			if (findfirstai1) begin
+			    a1 = ai1_s;
+			    b1 = ai2_s;
+			    c1 = S1;
+			    a2 = ai1;
+			    b2 = ai2;
+			    c2 = S0;
+				a1_a = {ai1_a, 1'b0};
+				a2_a = ai1_a;
+				b1_a = {ai2_a, 1'b0};
+				b2_a = ai2_a;
+				c1_a = S1_a;
+				c2_a = S0_a;
+				diff_a = a1_a - a2_a;
+				//////////////////////////////
+				if (err_cnt == 71) begin
+					a2i0_a = (b2_a + diff_a) >= 255 ? (b2_a + diff_a) - 255 : (b2_a + diff_a);
+				end
+				b3_t = b1 ^ a2i0_i; // t = 72
+				if (err_cnt == 71) begin
+					a2i1_a = (c2_a + diff_a) >= 255 ? (c2_a + diff_a) - 255 : (c2_a + diff_a);
+				end
+				if (err_cnt == 72)
+					i2a0_i = b3_t;
+
+				b3_a_t = i2a0_a; // t=73
+				c3_t = c1 ^ a2i1_i; // t = 72
+				if (err_cnt == 73) begin
+					i2a0_i = c3_t;
+				end
+				c3_a_t = i2a0_a; // t = 74
+				Y2_a_t = (c3_a_t + 255 - b3_a) >= 255? c3_a_t + 255 - b3_a - 255:(c3_a_t + 255 - b3_a);
+				
+				if (err_cnt == 74) begin
+					i2a0_i = c3_t;
+					a2i0_a = Y2_a_t;
+				end
+				Y2_t = a2i0_i; // t = 75
+				if (err_cnt == 75) begin
+					a2i0_a = (b1_a + Y2_a) >= 255 ? (b1_a + Y2_a) - 255 : (b1_a + Y2_a);
+				end
+				c4_t = a2i0_i ^ c1; // t = 76
+				if (err_cnt == 76) begin
+					i2a0_i = c4_t;
+				end
+				c4_a_t = i2a0_a; // t = 77
+				Y1_a_t = (c4_a_t + 255 - a1_a) >= 255 ? (c4_a_t - a1_a): (c4_a_t + 255 - a1_a);
+				if (err_cnt == 77) begin
+					a2i0_a = (Y1_a_t + ai1_a)>= 255 ? Y1_a_t + ai1_a - 255: (Y1_a_t + ai1_a);
+					a2i1_a = (Y2_a + ai2_a)>= 255?(Y2_a + ai2_a)-255:(Y2_a + ai2_a);
+				end
+				// t = 78
+				offset1_t = a2i0_i;
+				offset2_t = a2i1_i;
+				
+			end	
+			else begin
+				Y1_a = (S0_a + (255 - ai1_a)) >= 255? (S0_a - ai1_a) : (S0_a + (255 - ai1_a));
+				if (err_cnt == 71) begin
+					a2i0_a = (Y1_a + ai1_a)>=255 ? (Y1_a + ai1_a)-255:(Y1_a + ai1_a);
+				end
+				offset1_t = a2i0_i;
+				offset2_t = 0;
+			end
+		end
+	endcase
+
+end
+
 reg [4:0] error_position0;
 reg [4:0] error_position1;
 
@@ -1420,6 +1704,7 @@ always @* begin
 	for(i=0; i<26*8; i=i+1) begin
 		correct_codewords[i] = codewords[i];
 	end
+	correct_codewords[215:208] = 0;
 	if (findfirstai0) begin
 		correct_codewords[error_position0*8+:8] = codewords[error_position0*8+:8] ^ offset1;
 	end
@@ -1428,520 +1713,33 @@ always @* begin
 	end
 end
 
-assign a2i[0] = 1;
-assign a2i[1] = 2;
-assign a2i[2] = 4;
-assign a2i[3] = 8;
-assign a2i[4] = 16;
-assign a2i[5] = 32;
-assign a2i[6] = 64;
-assign a2i[7] = 128;
-assign a2i[8] = 29;
-assign a2i[9] = 58;
-assign a2i[10] = 116;
-assign a2i[11] = 232;
-assign a2i[12] = 205;
-assign a2i[13] = 135;
-assign a2i[14] = 19;
-assign a2i[15] = 38;
-assign a2i[16] = 76;
-assign a2i[17] = 152;
-assign a2i[18] = 45;
-assign a2i[19] = 90;
-assign a2i[20] = 180;
-assign a2i[21] = 117;
-assign a2i[22] = 234;
-assign a2i[23] = 201;
-assign a2i[24] = 143;
-assign a2i[25] = 3;
-assign a2i[26] = 6;
-assign a2i[27] = 12;
-assign a2i[28] = 24;
-assign a2i[29] = 48;
-assign a2i[30] = 96;
-assign a2i[31] = 192;
-assign a2i[32] = 157;
-assign a2i[33] = 39;
-assign a2i[34] = 78;
-assign a2i[35] = 156;
-assign a2i[36] = 37;
-assign a2i[37] = 74;
-assign a2i[38] = 148;
-assign a2i[39] = 53;
-assign a2i[40] = 106;
-assign a2i[41] = 212;
-assign a2i[42] = 181;
-assign a2i[43] = 119;
-assign a2i[44] = 238;
-assign a2i[45] = 193;
-assign a2i[46] = 159;
-assign a2i[47] = 35;
-assign a2i[48] = 70;
-assign a2i[49] = 140;
-assign a2i[50] = 5;
-assign a2i[51] = 10;
-assign a2i[52] = 20;
-assign a2i[53] = 40;
-assign a2i[54] = 80;
-assign a2i[55] = 160;
-assign a2i[56] = 93;
-assign a2i[57] = 186;
-assign a2i[58] = 105;
-assign a2i[59] = 210;
-assign a2i[60] = 185;
-assign a2i[61] = 111;
-assign a2i[62] = 222;
-assign a2i[63] = 161;
-assign a2i[64] = 95;
-assign a2i[65] = 190;
-assign a2i[66] = 97;
-assign a2i[67] = 194;
-assign a2i[68] = 153;
-assign a2i[69] = 47;
-assign a2i[70] = 94;
-assign a2i[71] = 188;
-assign a2i[72] = 101;
-assign a2i[73] = 202;
-assign a2i[74] = 137;
-assign a2i[75] = 15;
-assign a2i[76] = 30;
-assign a2i[77] = 60;
-assign a2i[78] = 120;
-assign a2i[79] = 240;
-assign a2i[80] = 253;
-assign a2i[81] = 231;
-assign a2i[82] = 211;
-assign a2i[83] = 187;
-assign a2i[84] = 107;
-assign a2i[85] = 214;
-assign a2i[86] = 177;
-assign a2i[87] = 127;
-assign a2i[88] = 254;
-assign a2i[89] = 225;
-assign a2i[90] = 223;
-assign a2i[91] = 163;
-assign a2i[92] = 91;
-assign a2i[93] = 182;
-assign a2i[94] = 113;
-assign a2i[95] = 226;
-assign a2i[96] = 217;
-assign a2i[97] = 175;
-assign a2i[98] = 67;
-assign a2i[99] = 134;
-assign a2i[100] = 17;
-assign a2i[101] = 34;
-assign a2i[102] = 68;
-assign a2i[103] = 136;
-assign a2i[104] = 13;
-assign a2i[105] = 26;
-assign a2i[106] = 52;
-assign a2i[107] = 104;
-assign a2i[108] = 208;
-assign a2i[109] = 189;
-assign a2i[110] = 103;
-assign a2i[111] = 206;
-assign a2i[112] = 129;
-assign a2i[113] = 31;
-assign a2i[114] = 62;
-assign a2i[115] = 124;
-assign a2i[116] = 248;
-assign a2i[117] = 237;
-assign a2i[118] = 199;
-assign a2i[119] = 147;
-assign a2i[120] = 59;
-assign a2i[121] = 118;
-assign a2i[122] = 236;
-assign a2i[123] = 197;
-assign a2i[124] = 151;
-assign a2i[125] = 51;
-assign a2i[126] = 102;
-assign a2i[127] = 204;
-assign a2i[128] = 133;
-assign a2i[129] = 23;
-assign a2i[130] = 46;
-assign a2i[131] = 92;
-assign a2i[132] = 184;
-assign a2i[133] = 109;
-assign a2i[134] = 218;
-assign a2i[135] = 169;
-assign a2i[136] = 79;
-assign a2i[137] = 158;
-assign a2i[138] = 33;
-assign a2i[139] = 66;
-assign a2i[140] = 132;
-assign a2i[141] = 21;
-assign a2i[142] = 42;
-assign a2i[143] = 84;
-assign a2i[144] = 168;
-assign a2i[145] = 77;
-assign a2i[146] = 154;
-assign a2i[147] = 41;
-assign a2i[148] = 82;
-assign a2i[149] = 164;
-assign a2i[150] = 85;
-assign a2i[151] = 170;
-assign a2i[152] = 73;
-assign a2i[153] = 146;
-assign a2i[154] = 57;
-assign a2i[155] = 114;
-assign a2i[156] = 228;
-assign a2i[157] = 213;
-assign a2i[158] = 183;
-assign a2i[159] = 115;
-assign a2i[160] = 230;
-assign a2i[161] = 209;
-assign a2i[162] = 191;
-assign a2i[163] = 99;
-assign a2i[164] = 198;
-assign a2i[165] = 145;
-assign a2i[166] = 63;
-assign a2i[167] = 126;
-assign a2i[168] = 252;
-assign a2i[169] = 229;
-assign a2i[170] = 215;
-assign a2i[171] = 179;
-assign a2i[172] = 123;
-assign a2i[173] = 246;
-assign a2i[174] = 241;
-assign a2i[175] = 255;
-assign a2i[176] = 227;
-assign a2i[177] = 219;
-assign a2i[178] = 171;
-assign a2i[179] = 75;
-assign a2i[180] = 150;
-assign a2i[181] = 49;
-assign a2i[182] = 98;
-assign a2i[183] = 196;
-assign a2i[184] = 149;
-assign a2i[185] = 55;
-assign a2i[186] = 110;
-assign a2i[187] = 220;
-assign a2i[188] = 165;
-assign a2i[189] = 87;
-assign a2i[190] = 174;
-assign a2i[191] = 65;
-assign a2i[192] = 130;
-assign a2i[193] = 25;
-assign a2i[194] = 50;
-assign a2i[195] = 100;
-assign a2i[196] = 200;
-assign a2i[197] = 141;
-assign a2i[198] = 7;
-assign a2i[199] = 14;
-assign a2i[200] = 28;
-assign a2i[201] = 56;
-assign a2i[202] = 112;
-assign a2i[203] = 224;
-assign a2i[204] = 221;
-assign a2i[205] = 167;
-assign a2i[206] = 83;
-assign a2i[207] = 166;
-assign a2i[208] = 81;
-assign a2i[209] = 162;
-assign a2i[210] = 89;
-assign a2i[211] = 178;
-assign a2i[212] = 121;
-assign a2i[213] = 242;
-assign a2i[214] = 249;
-assign a2i[215] = 239;
-assign a2i[216] = 195;
-assign a2i[217] = 155;
-assign a2i[218] = 43;
-assign a2i[219] = 86;
-assign a2i[220] = 172;
-assign a2i[221] = 69;
-assign a2i[222] = 138;
-assign a2i[223] = 9;
-assign a2i[224] = 18;
-assign a2i[225] = 36;
-assign a2i[226] = 72;
-assign a2i[227] = 144;
-assign a2i[228] = 61;
-assign a2i[229] = 122;
-assign a2i[230] = 244;
-assign a2i[231] = 245;
-assign a2i[232] = 247;
-assign a2i[233] = 243;
-assign a2i[234] = 251;
-assign a2i[235] = 235;
-assign a2i[236] = 203;
-assign a2i[237] = 139;
-assign a2i[238] = 11;
-assign a2i[239] = 22;
-assign a2i[240] = 44;
-assign a2i[241] = 88;
-assign a2i[242] = 176;
-assign a2i[243] = 125;
-assign a2i[244] = 250;
-assign a2i[245] = 233;
-assign a2i[246] = 207;
-assign a2i[247] = 131;
-assign a2i[248] = 27;
-assign a2i[249] = 54;
-assign a2i[250] = 108;
-assign a2i[251] = 216;
-assign a2i[252] = 173;
-assign a2i[253] = 71;
-assign a2i[254] = 142;
-assign a2i[255] = 1;
-assign i2a[0] = 0;
-assign i2a[1] = 0;
-assign i2a[2] = 1;
-assign i2a[3] = 25;
-assign i2a[4] = 2;
-assign i2a[5] = 50;
-assign i2a[6] = 26;
-assign i2a[7] = 198;
-assign i2a[8] = 3;
-assign i2a[9] = 223;
-assign i2a[10] = 51;
-assign i2a[11] = 238;
-assign i2a[12] = 27;
-assign i2a[13] = 104;
-assign i2a[14] = 199;
-assign i2a[15] = 75;
-assign i2a[16] = 4;
-assign i2a[17] = 100;
-assign i2a[18] = 224;
-assign i2a[19] = 14;
-assign i2a[20] = 52;
-assign i2a[21] = 141;
-assign i2a[22] = 239;
-assign i2a[23] = 129;
-assign i2a[24] = 28;
-assign i2a[25] = 193;
-assign i2a[26] = 105;
-assign i2a[27] = 248;
-assign i2a[28] = 200;
-assign i2a[29] = 8;
-assign i2a[30] = 76;
-assign i2a[31] = 113;
-assign i2a[32] = 5;
-assign i2a[33] = 138;
-assign i2a[34] = 101;
-assign i2a[35] = 47;
-assign i2a[36] = 225;
-assign i2a[37] = 36;
-assign i2a[38] = 15;
-assign i2a[39] = 33;
-assign i2a[40] = 53;
-assign i2a[41] = 147;
-assign i2a[42] = 142;
-assign i2a[43] = 218;
-assign i2a[44] = 240;
-assign i2a[45] = 18;
-assign i2a[46] = 130;
-assign i2a[47] = 69;
-assign i2a[48] = 29;
-assign i2a[49] = 181;
-assign i2a[50] = 194;
-assign i2a[51] = 125;
-assign i2a[52] = 106;
-assign i2a[53] = 39;
-assign i2a[54] = 249;
-assign i2a[55] = 185;
-assign i2a[56] = 201;
-assign i2a[57] = 154;
-assign i2a[58] = 9;
-assign i2a[59] = 120;
-assign i2a[60] = 77;
-assign i2a[61] = 228;
-assign i2a[62] = 114;
-assign i2a[63] = 166;
-assign i2a[64] = 6;
-assign i2a[65] = 191;
-assign i2a[66] = 139;
-assign i2a[67] = 98;
-assign i2a[68] = 102;
-assign i2a[69] = 221;
-assign i2a[70] = 48;
-assign i2a[71] = 253;
-assign i2a[72] = 226;
-assign i2a[73] = 152;
-assign i2a[74] = 37;
-assign i2a[75] = 179;
-assign i2a[76] = 16;
-assign i2a[77] = 145;
-assign i2a[78] = 34;
-assign i2a[79] = 136;
-assign i2a[80] = 54;
-assign i2a[81] = 208;
-assign i2a[82] = 148;
-assign i2a[83] = 206;
-assign i2a[84] = 143;
-assign i2a[85] = 150;
-assign i2a[86] = 219;
-assign i2a[87] = 189;
-assign i2a[88] = 241;
-assign i2a[89] = 210;
-assign i2a[90] = 19;
-assign i2a[91] = 92;
-assign i2a[92] = 131;
-assign i2a[93] = 56;
-assign i2a[94] = 70;
-assign i2a[95] = 64;
-assign i2a[96] = 30;
-assign i2a[97] = 66;
-assign i2a[98] = 182;
-assign i2a[99] = 163;
-assign i2a[100] = 195;
-assign i2a[101] = 72;
-assign i2a[102] = 126;
-assign i2a[103] = 110;
-assign i2a[104] = 107;
-assign i2a[105] = 58;
-assign i2a[106] = 40;
-assign i2a[107] = 84;
-assign i2a[108] = 250;
-assign i2a[109] = 133;
-assign i2a[110] = 186;
-assign i2a[111] = 61;
-assign i2a[112] = 202;
-assign i2a[113] = 94;
-assign i2a[114] = 155;
-assign i2a[115] = 159;
-assign i2a[116] = 10;
-assign i2a[117] = 21;
-assign i2a[118] = 121;
-assign i2a[119] = 43;
-assign i2a[120] = 78;
-assign i2a[121] = 212;
-assign i2a[122] = 229;
-assign i2a[123] = 172;
-assign i2a[124] = 115;
-assign i2a[125] = 243;
-assign i2a[126] = 167;
-assign i2a[127] = 87;
-assign i2a[128] = 7;
-assign i2a[129] = 112;
-assign i2a[130] = 192;
-assign i2a[131] = 247;
-assign i2a[132] = 140;
-assign i2a[133] = 128;
-assign i2a[134] = 99;
-assign i2a[135] = 13;
-assign i2a[136] = 103;
-assign i2a[137] = 74;
-assign i2a[138] = 222;
-assign i2a[139] = 237;
-assign i2a[140] = 49;
-assign i2a[141] = 197;
-assign i2a[142] = 254;
-assign i2a[143] = 24;
-assign i2a[144] = 227;
-assign i2a[145] = 165;
-assign i2a[146] = 153;
-assign i2a[147] = 119;
-assign i2a[148] = 38;
-assign i2a[149] = 184;
-assign i2a[150] = 180;
-assign i2a[151] = 124;
-assign i2a[152] = 17;
-assign i2a[153] = 68;
-assign i2a[154] = 146;
-assign i2a[155] = 217;
-assign i2a[156] = 35;
-assign i2a[157] = 32;
-assign i2a[158] = 137;
-assign i2a[159] = 46;
-assign i2a[160] = 55;
-assign i2a[161] = 63;
-assign i2a[162] = 209;
-assign i2a[163] = 91;
-assign i2a[164] = 149;
-assign i2a[165] = 188;
-assign i2a[166] = 207;
-assign i2a[167] = 205;
-assign i2a[168] = 144;
-assign i2a[169] = 135;
-assign i2a[170] = 151;
-assign i2a[171] = 178;
-assign i2a[172] = 220;
-assign i2a[173] = 252;
-assign i2a[174] = 190;
-assign i2a[175] = 97;
-assign i2a[176] = 242;
-assign i2a[177] = 86;
-assign i2a[178] = 211;
-assign i2a[179] = 171;
-assign i2a[180] = 20;
-assign i2a[181] = 42;
-assign i2a[182] = 93;
-assign i2a[183] = 158;
-assign i2a[184] = 132;
-assign i2a[185] = 60;
-assign i2a[186] = 57;
-assign i2a[187] = 83;
-assign i2a[188] = 71;
-assign i2a[189] = 109;
-assign i2a[190] = 65;
-assign i2a[191] = 162;
-assign i2a[192] = 31;
-assign i2a[193] = 45;
-assign i2a[194] = 67;
-assign i2a[195] = 216;
-assign i2a[196] = 183;
-assign i2a[197] = 123;
-assign i2a[198] = 164;
-assign i2a[199] = 118;
-assign i2a[200] = 196;
-assign i2a[201] = 23;
-assign i2a[202] = 73;
-assign i2a[203] = 236;
-assign i2a[204] = 127;
-assign i2a[205] = 12;
-assign i2a[206] = 111;
-assign i2a[207] = 246;
-assign i2a[208] = 108;
-assign i2a[209] = 161;
-assign i2a[210] = 59;
-assign i2a[211] = 82;
-assign i2a[212] = 41;
-assign i2a[213] = 157;
-assign i2a[214] = 85;
-assign i2a[215] = 170;
-assign i2a[216] = 251;
-assign i2a[217] = 96;
-assign i2a[218] = 134;
-assign i2a[219] = 177;
-assign i2a[220] = 187;
-assign i2a[221] = 204;
-assign i2a[222] = 62;
-assign i2a[223] = 90;
-assign i2a[224] = 203;
-assign i2a[225] = 89;
-assign i2a[226] = 95;
-assign i2a[227] = 176;
-assign i2a[228] = 156;
-assign i2a[229] = 169;
-assign i2a[230] = 160;
-assign i2a[231] = 81;
-assign i2a[232] = 11;
-assign i2a[233] = 245;
-assign i2a[234] = 22;
-assign i2a[235] = 235;
-assign i2a[236] = 122;
-assign i2a[237] = 117;
-assign i2a[238] = 44;
-assign i2a[239] = 215;
-assign i2a[240] = 79;
-assign i2a[241] = 174;
-assign i2a[242] = 213;
-assign i2a[243] = 233;
-assign i2a[244] = 230;
-assign i2a[245] = 231;
-assign i2a[246] = 173;
-assign i2a[247] = 232;
-assign i2a[248] = 116;
-assign i2a[249] = 214;
-assign i2a[250] = 244;
-assign i2a[251] = 234;
-assign i2a[252] = 168;
-assign i2a[253] = 80;
-assign i2a[254] = 88;
-assign i2a[255] = 175;
+assign x_s_array[0] = 1;
+assign x_s_array[1] = 4;
+assign x_s_array[2] = 16;
+assign x_s_array[3] = 64;
+assign x_s_array[4] = 29;
+assign x_s_array[5] = 116;
+assign x_s_array[6] = 205;
+assign x_s_array[7] = 19;
+assign x_s_array[8] = 76;
+assign x_s_array[9] = 45;
+assign x_s_array[10] = 180;
+assign x_s_array[11] = 234;
+assign x_s_array[12] = 143;
+assign x_s_array[13] = 6;
+assign x_s_array[14] = 24;
+assign x_s_array[15] = 96;
+assign x_s_array[16] = 157;
+assign x_s_array[17] = 78;
+assign x_s_array[18] = 37;
+assign x_s_array[19] = 148;
+assign x_s_array[20] = 106;
+assign x_s_array[21] = 181;
+assign x_s_array[22] = 238;
+assign x_s_array[23] = 159;
+assign x_s_array[24] = 70;
+assign x_s_array[25] = 5;
 
 endmodule
-
 
 
